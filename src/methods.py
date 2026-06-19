@@ -230,6 +230,69 @@ def egger_gated(yi, vi, alpha=0.05, gate_p=0.10):
 
 
 # ---------------------------------------------------------------------------
+# candidate: adaptive small-study shrinkage (soft Egger gate, REML <-> PEESE)
+# ---------------------------------------------------------------------------
+
+def _peese_mu(yi, vi):
+    """PEESE point estimate: WLS of y on vi (weights 1/vi); intercept."""
+    k = len(yi); w = 1.0 / vi
+    X = np.column_stack([np.ones(k), vi])
+    WX = X * w[:, None]
+    beta = np.linalg.solve(X.T @ WX, X.T @ (w * yi))
+    return float(beta[0])
+
+
+def _adapt_lambda(yi, vi, t0=2.0, s=0.75):
+    """Asymmetry-evidence weight in [0,1] from the Egger intercept t: a smooth
+    logistic in |t|. No asymmetry -> ~0 (stay at REML, no over-correction);
+    strong asymmetry -> ~1 (shift to PEESE). Tuning (t0, s) is FIXED a priori,
+    never fit to the outcome, so there is no circularity."""
+    t, _ = egger_test(yi, vi)
+    return 1.0 / (1.0 + math.exp(-(abs(t) - t0) / s))
+
+
+def _adapt_mu(yi, vi):
+    lam = _adapt_lambda(yi, vi)
+    tau2 = _reml_tau2(yi, vi)
+    mu_reml, _, _, _ = _re_fit(yi, vi, tau2)
+    mu_peese = _peese_mu(yi, vi)
+    return (1 - lam) * mu_reml + lam * mu_peese, lam
+
+
+def adaptive_shrink(yi, vi, alpha=0.05, n_boot=400, rng=None):
+    """Adaptive small-study-effect shrinkage. The point estimate is a convex blend
+    of the REML mean and the PEESE bias-corrected estimate, with the blend weight
+    rising smoothly with Egger asymmetry evidence. Aim: match REML when data are
+    clean (no over-correction, unlike fixed PET-PEESE) and approach the
+    bias-corrected estimate under strong small-study effects (like Henmi-Copas /
+    selection models). Percentile bootstrap CI over the whole procedure."""
+    yi = np.asarray(yi, float); vi = np.asarray(vi, float)
+    k = len(yi)
+    if rng is None:
+        rng = np.random.default_rng(0)
+    mu, lam = _adapt_mu(yi, vi)
+    boot = np.empty(n_boot)
+    for b in range(n_boot):
+        idx = rng.integers(0, k, size=k)
+        try:
+            boot[b] = _adapt_mu(yi[idx], vi[idx])[0]
+        except Exception:
+            boot[b] = np.nan
+    boot = boot[np.isfinite(boot)]
+    lo, hi = np.quantile(boot, [alpha / 2, 1 - alpha / 2])
+    # Small-sample widening: the percentile bootstrap is anti-conservative for
+    # the small k typical of meta-analysis. Inflate the half-widths about the
+    # point estimate by t_{k-1}/z (the same small-sample rationale as the HKSJ
+    # t-multiplier). Documented, fixed a priori -- not tuned to hit a target.
+    infl = sp.t.ppf(1 - alpha / 2, max(1, k - 1)) / sp.norm.ppf(1 - alpha / 2)
+    lo = mu - (mu - lo) * infl
+    hi = mu + (hi - mu) * infl
+    return {"method": "AdaptShrink", "mu": float(mu), "ci_lo": float(lo),
+            "ci_hi": float(hi), "se": float(boot.std(ddof=1)),
+            "tau2": _reml_tau2(yi, vi), "lambda": round(float(lam), 3)}
+
+
+# ---------------------------------------------------------------------------
 # candidate: out-of-sample (LOO-CV) stacked ensemble
 # ---------------------------------------------------------------------------
 

@@ -1,0 +1,192 @@
+{
+  "nominal": 0.95,
+  "band": [
+    0.9249999999999999,
+    0.975
+  ],
+  "cells": {
+    "normal|none|c0.0|t0.05|k10|m0.3": {
+      "DL": {
+        "bias": 0.0023,
+        "rmse": 0.1286,
+        "cover": 0.8667,
+        "width": 0.3974,
+        "calibrated": false,
+        "n": 30
+      },
+      "REML": {
+        "bias": -0.0001,
+        "rmse": 0.1298,
+        "cover": 0.8667,
+        "width": 0.3971,
+        "calibrated": false,
+        "n": 30
+      },
+      "HKSJ": {
+        "bias": -0.0001,
+        "rmse": 0.1298,
+        "cover": 0.9,
+        "width": 0.4391,
+        "calibrated": false,
+        "n": 30
+      },
+      "PET-PEESE": {
+        "bias": -0.0548,
+        "rmse": 0.2275,
+        "cover": 0.8667,
+        "width": 0.7565,
+        "calibrated": false,
+        "n": 30
+      },
+      "Robust": {
+        "bias": -0.0004,
+        "rmse": 0.1304,
+        "cover": 0.8667,
+        "width": 0.4081,
+        "calibrated": false,
+        "n": 30
+      },
+      "AdaptShrink": {
+        "bias": -0.0135,
+        "rmse": 0.1472,
+        "cover": 0.8667,
+        "width": 0.5408,
+        "calibrated": false,
+        "n": 30
+      }
+    },
+    "normal|copas_strong|c0.0|t0.05|k10|m0.3": {
+      "DL": {
+        "bias": 0.0963,
+        "rmse": 0.1553,
+        "cover": 0.6667,
+        "width": 0.3633,
+        "calibrated": false,
+        "n": 30
+      },
+      "REML": {
+        "bias": 0.0959,
+        "rmse": 0.1546,
+        "cover": 0.6667,
+        "width": 0.3705,
+        "calibrated": false,
+        "n": 30
+      },
+      "HKSJ": {
+        "bias": 0.0959,
+        "rmse": 0.1546,
+        "cover": 0.7333,
+        "width": 0.4176,
+        "calibrated": false,
+        "n": 30
+      },
+      "PET-PEESE": {
+        "bias": -0.0972,
+        "rmse": 0.279,
+        "cover": 0.8333,
+        "width": 0.7496,
+        "calibrated": false,
+        "n": 30
+      },
+      "Robust": {
+        "bias": 0.0956,
+        "rmse": 0.1541,
+        "cover": 0.7,
+        "width": 0.387,
+        "calibrated": false,
+        "n": 30
+      },
+      "AdaptShrink": {
+        "bias": 0.0467,
+        "rmse": 0.1404,
+        "cover": 0.8333,
+        "width": 0.5151,
+        "calibrated": false,
+        "n": 30
+      }
+    }
+  },
+  "aggregate": {
+    "DL": {
+      "mean_rmse": 0.1419,
+      "mean_cover": 0.7667,
+      "mean_width": 0.3803,
+      "frac_calibrated": 0.0,
+      "calib_rmse": null,
+      "n_cells": 2
+    },
+    "REML": {
+      "mean_rmse": 0.1422,
+      "mean_cover": 0.7667,
+      "mean_width": 0.3838,
+      "frac_calibrated": 0.0,
+      "calib_rmse": null,
+      "n_cells": 2
+    },
+    "HKSJ": {
+      "mean_rmse": 0.1422,
+      "mean_cover": 0.8166,
+      "mean_width": 0.4284,
+      "frac_calibrated": 0.0,
+      "calib_rmse": null,
+      "n_cells": 2
+    },
+    "PET-PEESE": {
+      "mean_rmse": 0.2533,
+      "mean_cover": 0.85,
+      "mean_width": 0.753,
+      "frac_calibrated": 0.0,
+      "calib_rmse": null,
+      "n_cells": 2
+    },
+    "Robust": {
+      "mean_rmse": 0.1422,
+      "mean_cover": 0.7833,
+      "mean_width": 0.3976,
+      "frac_calibrated": 0.0,
+      "calib_rmse": null,
+      "n_cells": 2
+    },
+    "AdaptShrink": {
+      "mean_rmse": 0.1438,
+      "mean_cover": 0.85,
+      "mean_width": 0.5279,
+      "frac_calibrated": 0.0,
+      "calib_rmse": null,
+      "n_cells": 2
+    }
+  },
+  "_meta": {
+    "reps": 30,
+    "ks": [
+      10
+    ],
+    "mus": [
+      0.3
+    ],
+    "tau2s": [
+      0.05
+    ],
+    "scenarios": [
+      "none",
+      "copas_strong"
+    ],
+    "re_dists": [
+      "normal"
+    ],
+    "contams": [
+      0.0
+    ],
+    "alpha": 0.05,
+    "methods": [
+      "DL",
+      "REML",
+      "HKSJ",
+      "PET-PEESE",
+      "Robust",
+      "AdaptShrink"
+    ],
+    "seed": 20260619,
+    "seconds": 18.9
+  }
+}

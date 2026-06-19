@@ -1,0 +1,12 @@
+{
+  "n_reviews": 365,
+  "n_asymmetric_egger_p<gate": 98,
+  "frac_asymmetric": 0.268,
+  "mean_lambda_all": 0.326,
+  "mean_lambda_asymmetric": 0.725,
+  "mean_lambda_symmetric": 0.18,
+  "mean_abs_shift_adapt_asymmetric": 0.3004,
+  "mean_abs_shift_adapt_symmetric": 0.0534,
+  "adapt_petpeese_sign_agreement_asymmetric": 1.0,
+  "note": "Descriptive only -- no ground truth on real data. Shows the adaptive estimator activates (larger lambda + shift) precisely on asymmetric reviews and corrects in the same direction as PET-PEESE."
+}

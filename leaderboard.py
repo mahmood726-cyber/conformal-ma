@@ -43,15 +43,20 @@ ESTIMATORS = {
     "PET-PEESE":   lambda y, v, a, r: M.pet_peese(y, v, a),
     "Robust":      lambda y, v, a, r: M.robust_redescend(y, v, a, n_boot=300, rng=r),
     "Egger-gated": lambda y, v, a, r: M.egger_gated(y, v, a),
+    "AdaptShrink": lambda y, v, a, r: M.adaptive_shrink(y, v, a, n_boot=400, rng=r),
     "Ensemble":    lambda y, v, a, r: M.ensemble_loo(y, v, a, n_boot=150, rng=r),
 }
 
 
 def run(reps, ks, mus, tau2s, scenarios, re_dists, contams, alpha, methods,
         export_path=None, verbose=True):
-    rng = np.random.default_rng(BASE_SEED)
+    # Two independent RNG streams: one for DATA (so the simulated datasets are
+    # IDENTICAL for a given grid/reps regardless of which methods are run, enabling
+    # clean merging across separate method-subset runs), one for the bootstrap
+    # methods. Data rng is reseeded per cell so cells are independent of method set.
     acc = {}   # cell-key -> method -> dict of running sums
     export = []  # optional: dump datasets for the R lane
+    cell_seed = 0
     for re_dist in re_dists:
         for scen in scenarios:
             for contam in contams:
@@ -59,13 +64,16 @@ def run(reps, ks, mus, tau2s, scenarios, re_dists, contams, alpha, methods,
                     for k in ks:
                         for mu in mus:
                             cell = f"{re_dist}|{scen}|c{contam}|t{tau2}|k{k}|m{mu}"
+                            cell_seed += 1
+                            data_rng = np.random.default_rng(BASE_SEED + cell_seed)
+                            method_rng = np.random.default_rng(BASE_SEED + 100000 + cell_seed)
                             for m in methods:
                                 acc.setdefault(cell, {}).setdefault(
                                     m, {"bias": 0.0, "sq": 0.0, "cov": 0, "w": 0.0, "n": 0})
                             for _ in range(reps):
-                                y, v, info = dgp.generate(mu, tau2, k, scen, rng, re_dist=re_dist)
+                                y, v, info = dgp.generate(mu, tau2, k, scen, data_rng, re_dist=re_dist)
                                 if contam > 0:
-                                    y, v = dgp.contaminate(y, v, rng, contam)
+                                    y, v = dgp.contaminate(y, v, data_rng, contam)
                                 if not (np.all(np.isfinite(y)) and np.all(v > 0)):
                                     continue
                                 if export_path is not None and len(export) < 4000:
@@ -74,7 +82,7 @@ def run(reps, ks, mus, tau2s, scenarios, re_dists, contams, alpha, methods,
                                                    "v": v.round(8).tolist()})
                                 for m in methods:
                                     try:
-                                        res = ESTIMATORS[m](y, v, alpha, rng)
+                                        res = ESTIMATORS[m](y, v, alpha, method_rng)
                                     except Exception:
                                         continue
                                     mh = res["mu"]
