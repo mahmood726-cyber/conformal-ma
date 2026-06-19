@@ -47,9 +47,15 @@ needlessly wide here.
 | method | bias | rmse | cover | width |
 |---|---|---|---|---|
 | DL / REML / HKSJ | +0.12 | 0.188 | 0.77–0.80 | 0.49–0.59 |
+| GRMA v10 | +0.127 | 0.210 | 0.736 | 0.613 |
+| TGEP | +0.105 | 0.178 | 0.771 | 0.459 |
 | **Henmi–Copas** | **+0.070** | **0.194** | 0.860 | **0.730** |
 | **AdaptShrink** | +0.081 | 0.196 | **0.889** | 1.062 |
 | PET-PEESE | −0.060 | 0.343 | 0.839 | 1.321 |
+
+**GRMA v10 and TGEP do not help under selection** (coverage 0.74 / 0.77, no better
+than DL/REML) — a robust location estimator cannot remove a *systematic* selection
+bias, only resist outliers. Only Henmi–Copas and AdaptShrink materially correct it.
 
 Both Henmi–Copas and AdaptShrink sharply reduce the selection bias that cripples
 DL/REML/HKSJ (coverage 0.86–0.89 vs 0.77–0.80). **No method reaches nominal** — selection
