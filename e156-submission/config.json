@@ -1,51 +1,51 @@
 {
-  "title": "Conformal Prediction Intervals for Meta-Analysis: Distribution-Free Coverage Across 307 Cochrane Reviews",
+  "title": "When a Prediction Interval Grades Its Own Homework: The Conformal Meta-Analysis Coverage Advantage Is a Circular-Evaluation Artifact",
   "slug": "conformal-prediction-meta-analysis",
   "author": "Mahmood Ahmad",
-  "date": "2026-03-26",
-  "path": "C:\\Models\\ConformalMA",
+  "date": "2026-06-19",
+  "path": "",
   "type": "methods",
-  "primary_estimand": "Prediction interval coverage probability",
-  "summary": "Conformal prediction intervals achieve 92.1% empirical coverage vs 70.5% for standard intervals across 307 Cochrane reviews.",
-  "body": "Can distribution-free prediction intervals provide guaranteed coverage for the next study effect in meta-analysis without assuming normality? Conformal prediction was adapted for random-effects meta-analysis using leave-one-out nonconformity scores from DerSimonian-Laird estimates, then applied to 307 Cochrane reviews with at least four studies each, comparing coverage against standard and HKSJ prediction intervals. The method computes standardized residuals for each left-out study, takes the calibrated quantile, and projects the interval using median standard error as proxy for next-study variance. Conformal prediction intervals achieved 92.1% mean empirical coverage compared with 70.5% for standard and 67.0% for HKSJ intervals across 307 reviews. Standard intervals exhibited undercoverage in 76.5% of reviews, while conformal intervals were wider by a factor of 3.06 but maintained finite-sample guarantees. These findings suggest conventional prediction intervals systematically understate uncertainty about future study effects in heterogeneous meta-analyses. However, the limitation of wider intervals means conformal sets may be too conservative for clinical decisions requiring precise effect boundaries.",
+  "primary_estimand": "Out-of-sample prediction interval coverage probability",
+  "summary": "Honest out-of-sample evaluation reverses the claim: standard prediction intervals cover 91.7% vs 85.7% for conformal across 365 Cochrane reviews; the earlier conformal advantage was an in-sample artifact.",
+  "body": "Do conformal prediction intervals outperform standard prediction intervals in meta-analysis, or was their reported advantage an artifact of measurement? We re-examined 365 Cochrane reviews from the Pairwise70 corpus, each with at least five primary-outcome studies, plus a known-truth simulation over several non-normal random-effects laws. The original evaluation built one interval from all studies and counted how many fell inside it, grading conformal on residuals it calibrated on; we instead used honest leave-one-out and known-truth out-of-sample coverage. Out-of-sample, mean coverage was 91.7% for the standard interval, 91.0% for HKSJ, and only 85.7% for conformal, reversing the reported ranking. The simulation agreed: the standard interval stayed near nominal across all random-effects laws while conformal under-covered, worst at five studies, with comparable not threefold widths. The apparent superiority of conformal prediction was a circular in-sample artifact, and the standard interval's t-multiplier supplies small-sample protection. Conformal prediction may still help under heavy contamination or many studies, regimes not examined here.",
   "sentences": [
     {
       "role": "Question",
-      "text": "Can distribution-free prediction intervals provide guaranteed coverage for the next study effect in meta-analysis without assuming normality?"
+      "text": "Do conformal prediction intervals outperform standard prediction intervals in meta-analysis, or was their reported advantage an artifact of measurement?"
     },
     {
       "role": "Dataset",
-      "text": "Conformal prediction was adapted for random-effects meta-analysis using leave-one-out nonconformity scores from DerSimonian-Laird estimates, then applied to 307 Cochrane reviews with at least four studies each, comparing coverage against standard and HKSJ prediction intervals."
+      "text": "We re-examined 365 Cochrane reviews from the Pairwise70 corpus, each with at least five primary-outcome studies, plus a known-truth simulation over several non-normal random-effects laws."
     },
     {
       "role": "Method",
-      "text": "The method computes standardized residuals for each left-out study, takes the calibrated quantile, and projects the interval using median standard error as proxy for next-study variance."
+      "text": "The original evaluation built one interval from all studies and counted how many fell inside it, grading conformal on residuals it calibrated on; we instead used honest leave-one-out and known-truth out-of-sample coverage."
     },
     {
       "role": "Primary result",
-      "text": "Conformal prediction intervals achieved 92.1% mean empirical coverage compared with 70.5% for standard and 67.0% for HKSJ intervals across 307 reviews."
+      "text": "Out-of-sample, mean coverage was 91.7% for the standard interval, 91.0% for HKSJ, and only 85.7% for conformal, reversing the reported ranking."
     },
     {
       "role": "Robustness",
-      "text": "Standard intervals exhibited undercoverage in 76.5% of reviews, while conformal intervals were wider by a factor of 3.06 but maintained finite-sample guarantees."
+      "text": "The simulation agreed: the standard interval stayed near nominal across all random-effects laws while conformal under-covered, worst at five studies, with comparable not threefold widths."
     },
     {
       "role": "Interpretation",
-      "text": "These findings suggest conventional prediction intervals systematically understate uncertainty about future study effects in heterogeneous meta-analyses."
+      "text": "The apparent superiority of conformal prediction was a circular in-sample artifact, and the standard interval's t-multiplier supplies small-sample protection."
     },
     {
       "role": "Boundary",
-      "text": "However, the limitation of wider intervals means conformal sets may be too conservative for clinical decisions requiring precise effect boundaries."
+      "text": "Conformal prediction may still help under heavy contamination or many studies, regimes not examined here."
     }
   ],
   "notes": {
-    "app": "ConformalMA Pipeline v1.0",
-    "data": "307 Cochrane systematic reviews (Pairwise70 dataset)",
+    "app": "conformal-ma honest evaluation",
+    "data": "365 Cochrane systematic reviews (Pairwise70 dataset)",
     "code": "https://github.com/mahmood726-cyber/conformal-ma",
     "doi": "",
-    "version": "1.0",
-    "date": "2026-03-26",
-    "validation": "DRAFT"
+    "version": "2.0",
+    "date": "2026-06-19",
+    "validation": "DerSimonian-Laird core validated against R metafor to <=3e-16; honest LOO + known-truth simulation; negative result"
   },
   "affiliation": "Tahir Heart Institute",
   "email": "mahmood.ahmad2@nhs.net",

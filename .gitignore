@@ -1,4 +1,12 @@
 
+# Session/work artifacts
+PROGRESS.md
+__pycache__/
+*.pyc
+.pytest_cache/
+sim_output/smoke*.json
+sim_output/_probe.json
+
 # Sentinel pre-push hook output (auto-generated per session)
 STUCK_FAILURES.md
 STUCK_FAILURES.jsonl

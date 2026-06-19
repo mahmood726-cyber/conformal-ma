@@ -1,4 +1,4 @@
-# Conformal Prediction Intervals for Meta-Analysis: Distribution-Free Coverage Across 307 Reviews
+# When a Prediction Interval Grades Its Own Homework: The Apparent Superiority of Conformal Prediction Intervals in Meta-Analysis Is a Circular-Evaluation Artifact
 
 **Mahmood Ahmad**
 
@@ -12,99 +12,105 @@ Correspondence: Mahmood Ahmad, Royal Free Hospital, Pond Street, London NW3 2QG,
 
 ## Abstract
 
-**Background:** Prediction intervals in meta-analysis estimate the range of true effects expected in future studies, yet standard methods rely on distributional assumptions that are frequently violated. Conformal prediction offers distribution-free coverage guarantees without parametric assumptions. We applied conformal prediction intervals to 307 Cochrane meta-analyses and compared their empirical coverage with standard and HKSJ prediction intervals.
+**Background:** Conformal prediction promises distribution-free coverage and has been proposed as a more honest prediction interval (PI) for meta-analysis than the normal-theory (Higgins–Riley) and Hartung–Knapp–Sidik–Jonkman (HKSJ) intervals. An earlier version of this project reported that conformal PIs achieved ~92% empirical coverage across Cochrane reviews versus ~70% for the standard PI. We set out to confirm that result and instead found it to be an artifact of how coverage was measured.
 
-**Methods:** For each review with k >= 4 studies, we computed leave-one-out nonconformity scores using DerSimonian-Laird estimates and calibrated the prediction quantile at the 95% level. The median within-study standard error served as a variance proxy for the next hypothetical study. We compared conformal, standard (normal-based), and Hartung-Knapp-Sidik-Jonkman (HKSJ) prediction intervals using leave-one-out empirical coverage across all 307 reviews from the Pairwise70 dataset.
+**Methods:** We re-examined the original evaluation, which built a single interval from all *k* studies in a review and then counted how many of those same *k* studies fell inside it. Because the conformal interval is calibrated on exactly those leave-one-out residuals, this in-sample procedure grades conformal on the quantity it was fit to. We replaced it with two honest, non-circular evaluations: (i) a genuine leave-one-out (LOO) prediction-coverage analysis on the same 365 Cochrane reviews, in which each held-out study is predicted from the other *k*−1 studies; and (ii) a known-truth simulation in which *k* published studies are drawn from a specified random-effects model (normal, heavy-tailed, skewed, or bimodal) with optional publication selection, all three PIs are built, and coverage is checked against a genuinely held-out new study from the same truth. All three methods were given an identical predictive scale, so they differed only in the multiplier (parametric *t* versus conformal empirical quantile). The DerSimonian–Laird pooling and PI construction were validated against R `metafor` to machine precision.
 
-**Results:** Mean empirical coverage was 92.1% for conformal intervals, 70.5% for standard intervals, and 67.0% for HKSJ intervals. Standard intervals achieved less than 80% coverage in 235/307 reviews (76.5%). Conformal intervals were on average 3.06 times wider than standard intervals. Coverage was most improved in reviews with high heterogeneity (I-squared > 75%), where conformal coverage was 93.4% versus 58.2% for standard intervals.
+**Results:** Under honest LOO on the 365 reviews (nominal 95%), mean coverage was 91.7% for the standard PI, 91.0% for HKSJ, and 85.7% for conformal — the *reverse* of the published ranking. Conformal intervals were not wider but slightly narrower (median width ratio 0.92). The claimed advantage at high heterogeneity did not appear: at I² > 75% both standard and conformal covered ~89%, and the standard PI never collapsed to the previously reported 58%. The known-truth simulation corroborated this: with correctly specified models the standard PI was at or slightly above nominal, while conformal under-covered, most severely at small *k* (finite-sample conformal calibration), approaching nominal only by *k* ≥ 10–15.
 
-**Conclusions:** Conformal prediction intervals provide substantially better empirical coverage than standard or HKSJ methods across a large sample of Cochrane reviews, at the cost of wider intervals. This distribution-free approach may be particularly valuable when heterogeneity is high and normality assumptions are questionable.
+**Conclusions:** The headline finding of the original analysis was a measurement artifact. Evaluated out-of-sample, the standard random-effects prediction interval is well-calibrated to slightly conservative, and split/full conformal prediction confers no coverage advantage in realistic meta-analytic regimes and under-covers when the number of studies is small. We report this as a negative result and a cautionary tale about in-sample coverage evaluation.
 
-**Keywords:** conformal prediction, prediction intervals, meta-analysis, coverage probability, heterogeneity
+**Keywords:** conformal prediction, prediction intervals, meta-analysis, coverage probability, in-sample bias, reproducibility
 
 ---
 
 ## Background
 
-Prediction intervals in meta-analysis address a fundamentally different question than confidence intervals: rather than quantifying uncertainty about the average effect, they estimate the range within which the true effect of a future study is expected to fall [1]. This distinction is critical for clinical decision-making, as clinicians need to know whether the treatment effect in their specific setting is likely to be beneficial, not merely whether the average across all settings is non-null.
+Prediction intervals (PIs) in meta-analysis estimate the range within which the true effect of a future study is expected to fall, a different and often more clinically relevant quantity than the confidence interval for the mean [1]. The standard random-effects PI assumes the study-level true effects are normally distributed and uses a *t*-multiplier (Higgins–Riley) [1, 5]; the HKSJ modification adjusts the variance and degrees of freedom [4].
 
-Standard prediction intervals in random-effects meta-analysis assume that the true effects follow a normal distribution around the pooled estimate, with variance equal to the sum of the between-study variance (tau-squared) and the within-study sampling variance. The Hartung-Knapp-Sidik-Jonkman (HKSJ) modification uses a t-distribution reference, which provides somewhat better calibration with few studies. However, both approaches depend on the normality of the random-effects distribution and accurate estimation of tau-squared, assumptions that are frequently violated in practice.
-
-Conformal prediction, introduced by Vovk, Gammerman, and Shafer [2], provides prediction intervals with guaranteed finite-sample coverage under the sole assumption of exchangeability -- that the data points are drawn from the same distribution in any order. This assumption is substantially weaker than normality and is plausible for study-level effects in meta-analysis. Shafer and Vovk [3] demonstrated that conformal methods maintain valid coverage even when the underlying distribution is heavy-tailed, skewed, or otherwise non-normal.
-
-We applied conformal prediction intervals to 307 Cochrane meta-analyses and compared their empirical coverage with standard and HKSJ prediction intervals.
+Conformal prediction [2, 3] produces prediction sets with finite-sample coverage guarantees under exchangeability alone, a weaker assumption than normality. This makes it an attractive candidate for meta-analysis, where the random-effects distribution is rarely verifiable. An earlier iteration of this project implemented a leave-one-out conformal PI and reported a large coverage advantage over the standard interval. The present paper documents why that advantage was illusory and what an honest evaluation shows.
 
 ## Methods
 
-### Data source
+### The flaw in the original evaluation
 
-We used 307 Cochrane reviews from the Pairwise70 dataset, each containing at least four primary studies. Effect sizes were expressed on the log-odds ratio or standardised mean difference scale as appropriate.
+The original pipeline, for each review, fit one interval to all *k* studies and then defined "coverage" as the fraction of those same *k* observed effects that lay inside the interval. The conformal interval's half-width is, by construction, the (1−α) empirical quantile of the leave-one-out nonconformity scores of those very studies. Grading it on the same studies therefore guarantees near-nominal in-sample coverage independent of whether the interval would cover a genuinely new study. The parametric intervals enjoy no such alignment. The comparison was thus not a test of out-of-sample calibration but of how closely each method's width matched the empirical spread of the data it was built from — a contest conformal wins by definition.
 
-### Standard prediction interval
+### Core estimators and validation
 
-For each review, we computed the DerSimonian-Laird random-effects pooled estimate (mu-hat) and between-study variance estimate (tau-squared-hat). The standard 95% prediction interval was calculated as mu-hat +/- z_{0.975} * sqrt(tau-squared-hat + s_new-squared), where s_new-squared is the anticipated within-study variance of a new study, estimated as the median squared standard error across included studies.
+We use DerSimonian–Laird random-effects pooling (μ̂, τ̂², se(μ̂)). The implementation (`src/conformal_core.py`) was validated against R `metafor::rma(method="DL")` across 60 datasets with *k* from 4 to 40: maximum absolute differences were 3.3 × 10⁻¹⁶ (μ̂), 5.6 × 10⁻¹⁷ (se), and 8.7 × 10⁻¹⁸ (τ̂²).
 
-### HKSJ prediction interval
+### A fair head-to-head
 
-The HKSJ prediction interval replaced the normal quantile with a t-distribution quantile on k-2 degrees of freedom and used the HKSJ variance estimator, which scales the standard error by the ratio of the Q statistic to its degrees of freedom.
+To isolate the one thing under test — the distributional assumption — all three PIs were built around an identical predictive scale, σ_pred = √(τ̂² + se(μ̂)² + se_new²), with se_new the median observed standard error (methods never see the future study's precision). The methods then differ only in the multiplier applied to σ_pred:
 
-### Conformal prediction interval
+- **standard**: *t*₍ₖ₋₂, 0.975₎;
+- **HKSJ**: *t*₍ₖ₋₁, 0.975₎ with the Hartung–Knapp inflated mean variance (floored at the DL variance);
+- **conformal**: the ⌈(1−α)(k+1)⌉ / k empirical quantile of the standardised leave-one-out residuals |yᵢ − μ̂₍₋ᵢ₎| / √(τ̂²₍₋ᵢ₎ + se(μ̂)²₍₋ᵢ₎ + vᵢ).
 
-We implemented a split-conformal approach adapted for the meta-analytic setting using leave-one-out (LOO) calibration. For each study i in a review of k studies:
+### Honest evaluation 1 — leave-one-out on real data
 
-1. A DerSimonian-Laird meta-analysis was conducted on the remaining k-1 studies, yielding a pooled estimate mu-hat_{-i}.
-2. The nonconformity score for study i was computed as |theta_i - mu-hat_{-i}| / sqrt(tau-squared-hat_{-i} + SE_i-squared), where theta_i is the observed effect in study i and SE_i is its standard error.
-3. The conformal prediction quantile q was set as the ceiling((k+1) * 0.95) / k ordered nonconformity score.
+For each of the 365 Cochrane reviews (Pairwise70 corpus, primary outcome, *k* ≥ 5), each study *i* in turn was held out, all three PIs were built from the other *k*−1 studies, and we recorded whether the held-out observed effect yᵢ fell inside each interval. No method ever saw the point it was graded on.
 
-The conformal 95% prediction interval for a new study was then mu-hat +/- q * sqrt(tau-squared-hat + s_new-squared), where s_new-squared is the median squared standard error.
+### Honest evaluation 2 — known-truth simulation
 
-### Coverage evaluation
-
-Empirical coverage was assessed using leave-one-out evaluation. For each study i in each review, the prediction interval was computed from the remaining k-1 studies, and coverage was recorded as 1 if the observed effect theta_i fell within the interval, 0 otherwise. The mean coverage for each review was the proportion of studies covered. Overall mean coverage was the average across all 307 reviews.
-
-### Width comparison
-
-Interval width was compared using the ratio of conformal to standard prediction interval widths for each review.
+A meta-analysis of *k* published studies was drawn from a known (μ, τ²) using a specified random-effects law — normal, Student-*t*₃ (heavy-tailed), skew-normal (asymmetric), or a two-component mixture (bimodal) — each standardised to mean μ and variance τ². An optional publication-selection mechanism (Vevea–Hedges step weights or Copas selection) decided which studies were observed. The three PIs were built from the published studies; a genuinely held-out new study was then drawn from the same truth (at the anticipated median precision) and coverage of its effect recorded. Each cell used 2,000 replications; seeds are fixed (`honest_coverage.py`, seed 20260619).
 
 ## Results
 
-### Empirical coverage
+### Real-data leave-one-out (n = 365, nominal 95%)
 
-Mean empirical coverage across 307 reviews was 92.1% (SD: 8.3%) for conformal prediction intervals, 70.5% (SD: 18.7%) for standard intervals, and 67.0% (SD: 19.4%) for HKSJ intervals. The nominal target was 95%.
+| Method | Mean LOO coverage | Median |
+|---|---|---|
+| Standard | 0.917 | 0.938 |
+| HKSJ | 0.910 | 0.923 |
+| Conformal | **0.857** | 0.875 |
 
-Standard prediction intervals achieved less than 80% empirical coverage in 235 of 307 reviews (76.5%), indicating systematic undercoverage. Conformal intervals achieved at least 80% coverage in 271 reviews (88.3%).
+The median conformal-to-standard width ratio was 0.92 — conformal intervals were *narrower*, not three times wider as previously reported. Stratified by heterogeneity, the standard PI covered 0.949 / 0.895 / 0.888 at I² < 25% / 25–75% / > 75%, while conformal covered 0.841 / 0.864 / 0.888. The previously claimed pattern (conformal 0.93 vs standard 0.58 at high heterogeneity) did not occur; the standard PI was never far below nominal out-of-sample, and conformal's deficit was largest at *low* heterogeneity, where small numbers of homogeneous studies make its empirical quantile unstable.
 
-### Stratification by heterogeneity
+### Known-truth simulation
 
-Coverage differences were most pronounced in reviews with high heterogeneity (I-squared > 75%, n = 89). In this subgroup, conformal coverage was 93.4% versus 58.2% for standard and 54.8% for HKSJ intervals. For reviews with low heterogeneity (I-squared < 25%, n = 102), the differences were smaller: conformal 91.0%, standard 82.3%, HKSJ 80.1%.
+Coverage of a held-out new study (y_new), averaged over the five selection
+scenarios and *k* ∈ {5, 10, 15, 25}, 2,000 replications per cell (320,000
+simulated meta-analyses; seed 20260619), nominal 95%:
 
-### Interval width
+| Random-effects law | standard | HKSJ | conformal | width ratio (conf/std) |
+|---|---|---|---|---|
+| normal | 0.951 | 0.946 | 0.913 | 1.01 |
+| Student-*t*₃ (heavy-tailed) | 0.954 | 0.950 | 0.911 | 1.10 |
+| skew-normal | 0.955 | 0.950 | 0.916 | 1.02 |
+| mixture (bimodal) | 0.949 | 0.944 | 0.911 | 0.98 |
 
-Conformal prediction intervals were on average 3.06 times wider than standard intervals (IQR: 2.14--3.87). The width ratio increased with heterogeneity: 2.31 for I-squared < 25%, 3.12 for I-squared 25--75%, and 3.84 for I-squared > 75%.
-
-### Stratification by number of studies
-
-Coverage of the conformal interval was stable across review sizes: 91.5% for reviews with 4--6 studies, 92.3% for 7--12 studies, and 92.8% for reviews with more than 12 studies. Standard interval coverage deteriorated with smaller reviews (65.1% for k = 4--6 versus 74.8% for k > 12).
+Under the correctly specified model (normal, no selection) coverage was 0.967
+(standard), 0.964 (HKSJ) and 0.928 (conformal). The conformal deficit was
+strongly *k*-dependent: at *k* = 5 the standard PI covered ~0.99 while conformal
+covered ~0.88–0.90 at roughly 0.62× the width; the two converged by *k* ≈ 15,
+and at *k* = 25 conformal became slightly conservative and wider. Across all four
+random-effects laws the standard PI was at or slightly above nominal and the
+conformal PI under-covered, most severely at *k* = 5 and converging toward
+nominal only by *k* ≥ 15. The HKSJ interval tracked the standard interval closely. Because the predictive distribution of an observed new study is the random-effects law convolved with normal sampling error, moderate non-normality of the random effects is partially Gaussianised at realistic τ²-to-precision ratios, which limits any distribution-free advantage; a τ²-dominant sensitivity analysis is reported in the repository.
 
 ## Discussion
 
-Our results demonstrate that conformal prediction intervals substantially outperform standard and HKSJ prediction intervals in empirical coverage across 307 Cochrane reviews. The improvement is greatest where it is most needed: in reviews with high heterogeneity, where the normality assumption underlying standard intervals is most suspect.
+The apparent superiority of conformal prediction intervals in the original analysis was entirely an artifact of in-sample coverage assessment. Once coverage is measured out-of-sample — either by genuine leave-one-out on real data or against injected ground truth — the ordering reverses: the standard random-effects prediction interval is well-calibrated to slightly conservative, and conformal prediction under-covers, particularly when the number of studies is small, which is the typical meta-analytic regime.
 
-The cost of improved coverage is wider intervals -- approximately three times wider on average. This tradeoff reflects the fundamental conservatism of distribution-free methods: without assuming normality, more of the outcome space must be covered to achieve the target probability. Whether this width is acceptable depends on the decision context. For safety-critical decisions where undercoverage could lead to harm, the wider but better-calibrated conformal interval may be preferred.
+This is consistent with what is known about finite-sample conformal prediction: with only *k* calibration residuals the (1−α) empirical quantile is poorly estimated, and the ⌈(1−α)(k+1)⌉/k correction cannot manufacture information that *k* = 5 studies do not contain. The *t*-multiplier, often criticised as an arbitrary parametric assumption, in fact encodes a useful small-sample inflation that protects coverage.
 
-The poor performance of HKSJ prediction intervals was somewhat unexpected, as the HKSJ modification is known to improve confidence interval coverage. However, prediction intervals face a different challenge: they must account for both between-study and within-study variability, and the HKSJ correction primarily addresses the former. When the random-effects distribution departs substantially from normality, neither the normal nor the t-based interval provides adequate coverage.
+### Why this matters
+
+The episode is a clean cautionary example of a broader failure mode: evaluating a calibrated interval on the data used to calibrate it. Any method whose width is tuned to the empirical spread of a sample will appear well-calibrated on that sample. Honest evaluation requires either held-out data or known ground truth.
 
 ### Limitations
 
-The exchangeability assumption underlying conformal prediction is weaker than normality but is not universally guaranteed. If study effects exhibit systematic temporal trends or are influenced by evolving methodology, exchangeability may be violated. Leave-one-out evaluation provides an optimistic estimate of coverage for very small reviews (k = 4), where the calibration set is limited. The median standard error proxy for next-study variance may not reflect the actual precision of future studies.
-
-### Practical implications
-
-Conformal prediction intervals could be reported alongside standard intervals as a sensitivity analysis, particularly when heterogeneity is substantial. The ratio of conformal to standard interval width also serves as a diagnostic: large ratios indicate that the standard interval may be unreliable due to distributional misspecification.
+Leave-one-out coverage on real data treats each observed study effect as the prediction target; with no ground truth, it is the best available empirical check, and the simulation supplies the known-truth complement. The simulation does not model every real-world departure (e.g., outlier or fraudulent studies), under which a robust interval could behave differently; conformal prediction may retain advantages in heavy-contamination regimes not examined here. Our conclusions concern the standard split/full conformal PI as implemented, not every possible conformal variant.
 
 ## Conclusions
 
-Conformal prediction intervals achieve 92.1% mean empirical coverage compared with 70.5% for standard and 67.0% for HKSJ intervals across 307 Cochrane meta-analyses. This distribution-free approach provides substantially better calibration at the cost of wider intervals and may be particularly valuable in the presence of high heterogeneity where parametric assumptions are questionable.
+Evaluated honestly out-of-sample, conformal prediction intervals provide no coverage advantage over the standard random-effects prediction interval in meta-analysis and under-cover when studies are few; the standard interval is well-calibrated to slightly conservative. The previously reported "92% versus 70%" advantage was a circular-evaluation artifact. We report this negative result, with all code and validation, in the spirit of correcting the record.
+
+## Code and reproducibility
+
+All analyses are reproducible from the repository: `python -m pytest tests/`, `python pipeline.py`, `python honest_coverage.py --reps 2000`, and `Rscript tools/metafor_check.R`. See `VALIDATION.md`.
 
 ## References
 
@@ -112,8 +118,8 @@ Conformal prediction intervals achieve 92.1% mean empirical coverage compared wi
 
 2. Vovk V, Gammerman A, Shafer G. Algorithmic Learning in a Random World. New York: Springer; 2005.
 
-3. Shafer G, Vovk V. A tutorial on conformal prediction. J Mach Learn Res. 2008;9:371--421.
+3. Shafer G, Vovk V. A tutorial on conformal prediction. J Mach Learn Res. 2008;9:371–421.
 
 4. IntHout J, Ioannidis JPA, Borm GF. The Hartung-Knapp-Sidik-Jonkman method for random effects meta-analysis is straightforward and considerably outperforms the standard DerSimonian-Laird method. BMC Med Res Methodol. 2014;14:25.
 
-5. Higgins JPT, Thompson SG, Spiegelhalter DJ. A re-evaluation of random-effects meta-analysis. J R Stat Soc Ser A. 2009;172(1):137--159.
+5. Higgins JPT, Thompson SG, Spiegelhalter DJ. A re-evaluation of random-effects meta-analysis. J R Stat Soc Ser A. 2009;172(1):137–159.

@@ -1,0 +1,37 @@
+{
+  "n_reviews": 365,
+  "alpha": 0.05,
+  "loo_coverage_mean": {
+    "standard": 0.9173,
+    "hksj": 0.9099,
+    "conformal": 0.8575
+  },
+  "loo_coverage_median": {
+    "standard": 0.9375,
+    "hksj": 0.9231,
+    "conformal": 0.875
+  },
+  "median_width_ratio_conf_std": 0.917,
+  "by_heterogeneity": {
+    "low (<25)": {
+      "standard": 0.9493,
+      "hksj": 0.9447,
+      "conformal": 0.8413,
+      "n": 157
+    },
+    "mod (25-75)": {
+      "standard": 0.8946,
+      "hksj": 0.886,
+      "conformal": 0.864,
+      "n": 160
+    },
+    "high (>75)": {
+      "standard": 0.8877,
+      "hksj": 0.8756,
+      "conformal": 0.8885,
+      "n": 48
+    }
+  },
+  "elapsed_seconds": 31.7,
+  "note": "Honest out-of-sample LOO: each held-out study predicted from the other k-1; no method sees its test point."
+}

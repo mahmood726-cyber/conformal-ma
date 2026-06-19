@@ -1,176 +1,81 @@
-"""Conformal Meta-Analysis: Distribution-Free Prediction Sets for Evidence Synthesis.
+"""pipeline.py -- real-data companion to the known-truth honest harness.
 
-Standard prediction intervals assume:
-  - Normal random-effects distribution
-  - Known variance components
-  - Asymptotic approximation (t_{k-2})
+Applies the standard / HKSJ / conformal prediction intervals to the Pairwise70
+Cochrane corpus and measures EMPIRICAL leave-one-out prediction coverage.
 
-Conformal prediction sets provide:
-  - GUARANTEED finite-sample coverage (1-alpha) regardless of distribution
-  - No parametric assumptions
-  - Valid for multimodal, skewed, heavy-tailed effect distributions
-  - Works with as few as k=5 studies
+What changed (and why)
+----------------------
+The earlier version of this file built ONE interval from all k studies and then
+counted how many of those SAME k studies fell inside it. That is in-sample and
+circular -- the conformal interval is calibrated on exactly those residuals, so
+it scores near-perfect by construction while the parametric intervals do not.
+The "92% vs 70%" headline that produced was an artifact of that circularity, not
+an out-of-sample fact (see honest_coverage.py for the known-truth refutation).
 
-Method: Split conformal prediction adapted for meta-analysis.
-For each review, compute leave-one-out nonconformity scores,
-then construct the prediction set from the (1-alpha) quantile.
+This version does HONEST leave-one-out prediction coverage, which is what the
+manuscript actually describes: for each study i, the interval is built from the
+OTHER k-1 studies and we check whether the held-out y_i falls inside it. No
+method ever sees the point it is graded on, and all three are graded identically.
 
-Applied to 403 Cochrane reviews. Compare coverage of:
-  1. Standard PI (t_{k-2}, assumes normality)
-  2. Conformal PI (distribution-free, guaranteed coverage)
-  3. HKSJ PI (Knapp-Hartung adjusted)
+There is no ground truth on real data, so LOO prediction coverage is the best
+available empirical measure; the simulation in honest_coverage.py supplies the
+known-truth check.
 
-Key question: How often does the standard PI FAIL to cover
-the effect that a new study would find?
+Paths are parameters, not hardcoded. Pass --data DIR / --out DIR, or set
+CONFORMAL_DATA_DIR / CONFORMAL_OUT_DIR. Default data dir is the Pairwise70 clone
+under the user's home if present.
 """
 
+import argparse
 import csv
 import json
-import math
+import os
+import sys
 import time
-import numpy as np
-import pyreadr
 from pathlib import Path
-from scipy import stats as sp_stats
-from collections import Counter
 
-PAIRWISE_DIR = Path(r'C:\Models\Pairwise70\data')
-OUTPUT_DIR = Path(r'C:\Models\ConformalMA\data\output')
+import numpy as np
 
+sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
+import conformal_core as C  # noqa: E402
 
-# ═══════════════════════════════════════════════════
-# CONFORMAL PREDICTION FOR META-ANALYSIS
-# ═══════════════════════════════════════════════════
+try:
+    import pyreadr
+except ImportError:  # pragma: no cover - dependency guard
+    pyreadr = None
 
-def conformal_prediction_set(yi, sei, alpha=0.05):
-    """Compute conformal prediction set for the next study's effect.
-
-    Uses full conformal (leave-one-out) approach:
-    1. For each study i, fit DL on the remaining k-1 studies
-    2. Compute nonconformity score: |yi - theta_{-i}| / sqrt(sei^2 + tau2_{-i})
-    3. The (1-alpha) quantile of scores defines the prediction set radius
-
-    Returns: prediction set [lo, hi] with guaranteed 1-alpha coverage.
-    """
-    k = len(yi)
-    if k < 4:
-        return None
-
-    scores = np.zeros(k)
-
-    for i in range(k):
-        # Leave-one-out
-        yi_loo = np.delete(yi, i)
-        sei_loo = np.delete(sei, i)
-
-        # DL on k-1 studies
-        wi = 1.0 / sei_loo**2
-        sw = np.sum(wi)
-        theta_fe = np.sum(wi * yi_loo) / sw
-        Q = float(np.sum(wi * (yi_loo - theta_fe)**2))
-        C = float(sw - np.sum(wi**2) / sw)
-        tau2 = max(0, (Q - (k - 2)) / C) if C > 0 else 0
-
-        ws = 1.0 / (sei_loo**2 + tau2)
-        sws = np.sum(ws)
-        theta_loo = float(np.sum(ws * yi_loo) / sws)
-
-        # Nonconformity score: standardized residual
-        sigma_pred = math.sqrt(sei[i]**2 + tau2)
-        scores[i] = abs(yi[i] - theta_loo) / sigma_pred
-
-    # Quantile for prediction set
-    # For conformal, use ceil((1-alpha)*(k+1))/k quantile
-    q_level = math.ceil((1 - alpha) * (k + 1)) / k
-    q_level = min(q_level, 1.0)
-    threshold = np.quantile(scores, q_level)
-
-    # Full-data DL for center
-    wi = 1.0 / sei**2
-    sw = np.sum(wi)
-    theta_fe = np.sum(wi * yi) / sw
-    Q = float(np.sum(wi * (yi - theta_fe)**2))
-    C = float(sw - np.sum(wi**2) / sw)
-    tau2 = max(0, (Q - (k - 1)) / C) if C > 0 else 0
-    ws = 1.0 / (sei**2 + tau2)
-    sws = np.sum(ws)
-    theta = float(np.sum(ws * yi) / sws)
-    se_theta = float(1.0 / math.sqrt(sws))
-
-    # Prediction set: theta +/- threshold * sigma_pred_new
-    # Use median SE as proxy for new study's SE
-    se_new = float(np.median(sei))
-    sigma_pred_new = math.sqrt(se_new**2 + tau2)
-    conformal_lo = theta - threshold * sigma_pred_new
-    conformal_hi = theta + threshold * sigma_pred_new
-
-    return {
-        'theta': theta,
-        'se_theta': se_theta,
-        'tau2': tau2,
-        'conformal_lo': conformal_lo,
-        'conformal_hi': conformal_hi,
-        'conformal_width': conformal_hi - conformal_lo,
-        'threshold': float(threshold),
-        'scores': scores.tolist(),
-    }
+METHODS = ("standard", "hksj", "conformal")
 
 
-def standard_prediction_interval(theta, se_theta, tau2, k, alpha=0.05):
-    """Standard PI: theta +/- t_{k-2} * sqrt(tau2 + se^2). Assumes normality."""
-    if k < 3:
-        return None
-    t_crit = sp_stats.t.ppf(1 - alpha / 2, k - 2)
-    pi_se = math.sqrt(tau2 + se_theta**2)
-    return {
-        'standard_lo': theta - t_crit * pi_se,
-        'standard_hi': theta + t_crit * pi_se,
-        'standard_width': 2 * t_crit * pi_se,
-    }
+def default_data_dir():
+    env = os.environ.get("CONFORMAL_DATA_DIR")
+    if env:
+        return Path(env)
+    home = Path(os.path.expanduser("~"))
+    for cand in (home / "Pairwise70" / "data",
+                 Path(r"C:\Models\Pairwise70\data")):
+        if cand.is_dir():
+            return cand
+    return home / "Pairwise70" / "data"
 
 
-def hksj_prediction_interval(yi, sei, theta, tau2, k, alpha=0.05):
-    """HKSJ-adjusted PI: uses t_{k-1} and HKSJ variance."""
-    if k < 3:
-        return None
-    ws = 1.0 / (sei**2 + tau2)
-    sws = np.sum(ws)
-    # HKSJ variance adjustment
-    q_hksj = np.sum(ws * (yi - theta)**2) / (k - 1)
-    se_hksj = math.sqrt(q_hksj / sws)
-
-    t_crit = sp_stats.t.ppf(1 - alpha / 2, k - 1)
-    pi_se = math.sqrt(tau2 + se_hksj**2)
-    return {
-        'hksj_lo': theta - t_crit * pi_se,
-        'hksj_hi': theta + t_crit * pi_se,
-        'hksj_width': 2 * t_crit * pi_se,
-    }
-
-
-def leave_one_out_coverage(yi, sei, interval_lo, interval_hi):
-    """Empirical coverage: what fraction of LOO studies fall within the interval?"""
-    k = len(yi)
-    covered = sum(1 for i in range(k) if interval_lo <= yi[i] <= interval_hi)
-    return covered / k
-
-
-# ═══════════════════════════════════════════════════
-# DATA LOADING
-# ═══════════════════════════════════════════════════
+# ---------------------------------------------------------------------------
+# Data loading (unchanged extraction logic; loads the Cochrane primary outcome)
+# ---------------------------------------------------------------------------
 
 def load_review(rda_path):
+    import pandas as pd
     result = pyreadr.read_r(str(rda_path))
     df = list(result.values())[0].copy()
     df.columns = df.columns.str.replace(' ', '.', regex=False)
     review_id = rda_path.stem.split('_')[0]
 
-    import pandas as pd
     groups = []
     for (grp, num), sub in df.groupby(['Analysis.group', 'Analysis.number']):
         has_binary = (sub['Experimental.cases'].notna() & (sub['Experimental.cases'] > 0)).any()
         groups.append({'grp': grp, 'num': num, 'k': len(sub), 'binary': has_binary})
-    if not groups: return None
+    if not groups:
+        return None
     gdf = pd.DataFrame(groups)
     binary = gdf[gdf['binary']]
     best = binary.loc[binary['k'].idxmax()] if len(binary) > 0 else gdf.loc[gdf['k'].idxmax()]
@@ -180,149 +85,154 @@ def load_review(rda_path):
     scale = 'ratio' if has_binary else ('ratio' if (primary['Mean'].dropna() > 0).all() else 'difference')
 
     if scale == 'ratio':
-        v = (primary['Mean'].notna() & (primary['Mean'] > 0) & primary['CI.start'].notna() & (primary['CI.start'] > 0) & primary['CI.end'].notna() & (primary['CI.end'] > 0))
+        v = (primary['Mean'].notna() & (primary['Mean'] > 0) & primary['CI.start'].notna() &
+             (primary['CI.start'] > 0) & primary['CI.end'].notna() & (primary['CI.end'] > 0))
         sub = primary[v]
-        if len(sub) < 4: return None
+        if len(sub) < 4:
+            return None
         yi = np.log(sub['Mean'].values.astype(float))
         sei = (np.log(sub['CI.end'].values.astype(float)) - np.log(sub['CI.start'].values.astype(float))) / (2 * 1.96)
     else:
         v = primary['Mean'].notna() & primary['CI.start'].notna() & primary['CI.end'].notna()
         sub = primary[v]
-        if len(sub) < 4: return None
+        if len(sub) < 4:
+            return None
         yi = sub['Mean'].values.astype(float)
         sei = (sub['CI.end'].values.astype(float) - sub['CI.start'].values.astype(float)) / (2 * 1.96)
 
     ok = (sei > 0) & np.isfinite(yi) & np.isfinite(sei)
     yi, sei = yi[ok], sei[ok]
-    if len(yi) < 4: return None
+    if len(yi) < 4:
+        return None
     return {'review_id': review_id, 'yi': yi, 'sei': sei, 'k': len(yi), 'scale': scale}
 
 
-# ═══════════════════════════════════════════════════
-# MAIN
-# ═══════════════════════════════════════════════════
+# ---------------------------------------------------------------------------
+# Honest leave-one-out prediction coverage
+# ---------------------------------------------------------------------------
+
+def loo_coverage(yi, sei, alpha=0.05):
+    """For each study i, build each PI from the other k-1 studies and test
+    whether the held-out y_i is covered. Returns per-method coverage and the
+    full-data tau2 / I2 / conformal-vs-standard width ratio (for description).
+
+    Requires k >= 5 so that each LOO fold has k-1 >= 4 (conformal needs 4)."""
+    yi = np.asarray(yi, float)
+    vi = np.asarray(sei, float) ** 2
+    k = len(yi)
+    if k < 5:
+        return None
+
+    hits = {m: 0 for m in METHODS}
+    folds = {m: 0 for m in METHODS}
+    for i in range(k):
+        y_lo = np.delete(yi, i)
+        v_lo = np.delete(vi, i)
+        pis = C.all_pis(y_lo, v_lo, alpha=alpha)
+        for m in METHODS:
+            pi = pis[m]
+            if pi is None:
+                continue
+            folds[m] += 1
+            hits[m] += int(pi["lo"] <= yi[i] <= pi["hi"])
+    cov = {m: (hits[m] / folds[m] if folds[m] else float("nan")) for m in METHODS}
+
+    full = C.all_pis(yi, vi, alpha=alpha)
+    wr = (full["conformal"]["width"] / full["standard"]["width"]
+          if full["standard"]["width"] > 0 else float("nan"))
+    return {"cov": cov, "tau2": full["fit"]["tau2"],
+            "I2": C.i_squared(full["fit"]["Q"], k), "width_ratio_conf_std": wr}
+
 
 def main():
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    print("Conformal Meta-Analysis")
-    print("=" * 40)
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--data", type=Path, default=default_data_dir())
+    ap.add_argument("--out", type=Path,
+                    default=Path(os.environ.get("CONFORMAL_OUT_DIR",
+                                                "data/output")))
+    ap.add_argument("--alpha", type=float, default=0.05)
+    ap.add_argument("--min-k", type=int, default=5)
+    args = ap.parse_args()
+
+    if pyreadr is None:
+        sys.exit("pyreadr is required to read .rda files: pip install pyreadr")
+    if not args.data.is_dir():
+        sys.exit(f"data dir not found: {args.data}\n"
+                 f"set --data or CONFORMAL_DATA_DIR to the Pairwise70 .rda folder")
+    args.out.mkdir(parents=True, exist_ok=True)
+
+    print("Conformal Meta-Analysis -- honest leave-one-out coverage")
+    print("=" * 56)
+    print(f"  data: {args.data}")
 
     t0 = time.time()
-    rda_files = sorted(PAIRWISE_DIR.glob('*.rda'))
-
+    rda_files = sorted(args.data.glob('*.rda'))
     results = []
     for rda in rda_files:
         review = load_review(rda)
-        if review is None or review['k'] < 5:
+        if review is None or review['k'] < args.min_k:
             continue
-
-        yi, sei, k = review['yi'], review['sei'], review['k']
-
-        # Conformal prediction set
-        conf = conformal_prediction_set(yi, sei, alpha=0.05)
-        if conf is None:
+        r = loo_coverage(review['yi'], review['sei'], alpha=args.alpha)
+        if r is None:
             continue
+        results.append({"review_id": review['review_id'], "k": review['k'],
+                        "scale": review['scale'], "tau2": round(r["tau2"], 4),
+                        "I2": round(r["I2"], 1),
+                        "cov_standard": round(r["cov"]["standard"], 4),
+                        "cov_hksj": round(r["cov"]["hksj"], 4),
+                        "cov_conformal": round(r["cov"]["conformal"], 4),
+                        "width_ratio_conf_std": round(r["width_ratio_conf_std"], 3)})
 
-        # Standard PI
-        std = standard_prediction_interval(conf['theta'], conf['se_theta'], conf['tau2'], k, 0.05)
-
-        # HKSJ PI
-        hksj = hksj_prediction_interval(yi, sei, conf['theta'], conf['tau2'], k, 0.05)
-
-        # LOO coverage for each method
-        cov_conformal = leave_one_out_coverage(yi, sei, conf['conformal_lo'], conf['conformal_hi'])
-        cov_standard = leave_one_out_coverage(yi, sei, std['standard_lo'], std['standard_hi']) if std else 0
-        cov_hksj = leave_one_out_coverage(yi, sei, hksj['hksj_lo'], hksj['hksj_hi']) if hksj else 0
-
-        # Width ratios
-        width_ratio_vs_standard = conf['conformal_width'] / std['standard_width'] if std and std['standard_width'] > 0 else 1
-        width_ratio_vs_hksj = conf['conformal_width'] / hksj['hksj_width'] if hksj and hksj['hksj_width'] > 0 else 1
-
-        row = {
-            'review_id': review['review_id'],
-            'k': k,
-            'scale': review['scale'],
-            'theta': round(conf['theta'], 4),
-            'tau2': round(conf['tau2'], 4),
-            'conformal_lo': round(conf['conformal_lo'], 4),
-            'conformal_hi': round(conf['conformal_hi'], 4),
-            'conformal_width': round(conf['conformal_width'], 4),
-            'standard_lo': round(std['standard_lo'], 4) if std else '',
-            'standard_hi': round(std['standard_hi'], 4) if std else '',
-            'standard_width': round(std['standard_width'], 4) if std else '',
-            'hksj_lo': round(hksj['hksj_lo'], 4) if hksj else '',
-            'hksj_hi': round(hksj['hksj_hi'], 4) if hksj else '',
-            'hksj_width': round(hksj['hksj_width'], 4) if hksj else '',
-            'cov_conformal': round(cov_conformal, 3),
-            'cov_standard': round(cov_standard, 3),
-            'cov_hksj': round(cov_hksj, 3),
-            'width_ratio_conf_std': round(width_ratio_vs_standard, 3),
-            'width_ratio_conf_hksj': round(width_ratio_vs_hksj, 3),
-            'conformal_wider': width_ratio_vs_standard > 1,
-        }
-        results.append(row)
-
-    elapsed = time.time() - t0
     n = len(results)
-    print(f"  Processed: {n} reviews in {elapsed:.1f}s")
+    elapsed = time.time() - t0
+    if n == 0:
+        sys.exit("no reviews passed filtering")
 
-    # HEADLINE STATS
-    cov_conf = np.array([r['cov_conformal'] for r in results])
-    cov_std = np.array([r['cov_standard'] for r in results])
-    cov_hksj = np.array([r['cov_hksj'] for r in results])
-    width_ratios = np.array([r['width_ratio_conf_std'] for r in results])
+    def col(name):
+        return np.array([row[name] for row in results], float)
+    means = {m: float(np.nanmean(col(f"cov_{m}"))) for m in METHODS}
+    meds = {m: float(np.nanmedian(col(f"cov_{m}"))) for m in METHODS}
+    wr = col("width_ratio_conf_std")
 
-    # Coverage failure rate (below nominal 95%)
-    conf_undercov = np.sum(cov_conf < 0.90) / n * 100
-    std_undercov = np.sum(cov_std < 0.90) / n * 100
-    hksj_undercov = np.sum(cov_hksj < 0.90) / n * 100
+    print(f"  reviews: {n}   time: {elapsed:.1f}s")
+    print(f"\n  {'Method':12s}{'mean LOO cov':>14s}{'median':>10s}")
+    for m in METHODS:
+        print(f"  {m:12s}{means[m]:>14.4f}{meds[m]:>10.4f}")
+    print(f"\n  median conformal/standard width ratio: {np.nanmedian(wr):.3f}")
+    print(f"  conformal wider than standard: "
+          f"{int(np.sum(wr > 1))}/{n} ({100*np.mean(wr > 1):.1f}%)")
 
-    conformal_wider = sum(1 for r in results if r['conformal_wider'])
+    # I2 stratification (honest, computed -- not asserted)
+    I2 = col("I2")
+    strata = {"low (<25)": I2 < 25, "mod (25-75)": (I2 >= 25) & (I2 <= 75),
+              "high (>75)": I2 > 75}
+    strat_out = {}
+    print(f"\n  LOO coverage by heterogeneity stratum:")
+    for label, mask in strata.items():
+        if mask.sum() == 0:
+            continue
+        row = {m: round(float(np.nanmean(col(f"cov_{m}")[mask])), 4) for m in METHODS}
+        row["n"] = int(mask.sum())
+        strat_out[label] = row
+        print(f"    {label:14s} n={row['n']:4d}  "
+              f"std={row['standard']:.3f} hksj={row['hksj']:.3f} conf={row['conformal']:.3f}")
 
-    print(f"\n{'='*55}")
-    print("COVERAGE COMPARISON (nominal 95%)")
-    print(f"{'='*55}")
-    print(f"  {'Method':20s} {'Mean Cov':>10s} {'Median':>10s} {'<90% (fail)':>12s}")
-    print(f"  {'Conformal':20s} {np.mean(cov_conf):>10.3f} {np.median(cov_conf):>10.3f} {conf_undercov:>10.1f}%")
-    print(f"  {'Standard PI':20s} {np.mean(cov_std):>10.3f} {np.median(cov_std):>10.3f} {std_undercov:>10.1f}%")
-    print(f"  {'HKSJ PI':20s} {np.mean(cov_hksj):>10.3f} {np.median(cov_hksj):>10.3f} {hksj_undercov:>10.1f}%")
-
-    print(f"\n  Conformal wider than standard: {conformal_wider}/{n} ({100*conformal_wider/n:.1f}%)")
-    print(f"  Mean width ratio (conformal/standard): {np.mean(width_ratios):.2f}")
-    print(f"  Median width ratio: {np.median(width_ratios):.2f}")
-
-    # KEY FINDING: reviews where standard PI fails but conformal succeeds
-    discordant = sum(1 for r in results if r['cov_standard'] < 0.85 and r['cov_conformal'] >= 0.90)
-    print(f"\n  Standard fails (<85% cov) but conformal holds (>=90%): {discordant}/{n} ({100*discordant/n:.1f}%)")
-
-    # EXPORT
     fields = list(results[0].keys())
-    with open(OUTPUT_DIR / 'conformal_results.csv', 'w', newline='', encoding='utf-8') as f:
-        writer = csv.DictWriter(f, fieldnames=fields)
-        writer.writeheader()
-        writer.writerows(results)
-
-    summary = {
-        'n_reviews': n,
-        'coverage': {
-            'conformal_mean': round(float(np.mean(cov_conf)), 3),
-            'standard_mean': round(float(np.mean(cov_std)), 3),
-            'hksj_mean': round(float(np.mean(cov_hksj)), 3),
-            'conformal_undercov_pct': round(conf_undercov, 1),
-            'standard_undercov_pct': round(std_undercov, 1),
-            'hksj_undercov_pct': round(hksj_undercov, 1),
-        },
-        'width': {
-            'conformal_wider_pct': round(100 * conformal_wider / n, 1),
-            'mean_ratio': round(float(np.mean(width_ratios)), 2),
-        },
-        'discordant': discordant,
-        'elapsed_seconds': round(elapsed, 1),
-    }
-    with open(OUTPUT_DIR / 'conformal_summary.json', 'w', encoding='utf-8') as f:
+    with open(args.out / 'conformal_loo_results.csv', 'w', newline='', encoding='utf-8') as f:
+        w = csv.DictWriter(f, fieldnames=fields)
+        w.writeheader()
+        w.writerows(results)
+    summary = {"n_reviews": n, "alpha": args.alpha,
+               "loo_coverage_mean": {m: round(means[m], 4) for m in METHODS},
+               "loo_coverage_median": {m: round(meds[m], 4) for m in METHODS},
+               "median_width_ratio_conf_std": round(float(np.nanmedian(wr)), 3),
+               "by_heterogeneity": strat_out,
+               "elapsed_seconds": round(elapsed, 1),
+               "note": "Honest out-of-sample LOO: each held-out study predicted "
+                       "from the other k-1; no method sees its test point."}
+    with open(args.out / 'conformal_loo_summary.json', 'w', encoding='utf-8') as f:
         json.dump(summary, f, indent=2)
-
-    print(f"\n  Saved to {OUTPUT_DIR}/")
+    print(f"\n  saved -> {args.out}/")
 
 
 if __name__ == '__main__':
