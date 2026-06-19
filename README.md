@@ -50,4 +50,17 @@ Rscript tools/metafor_check.R
 ```
 Data path can also be set via `CONFORMAL_DATA_DIR`.
 
-_Status: methods-correction complete; honest negative result._
+## Phase 2 — can any method beat the field? (`LEADERBOARD.md`)
+
+A second, harder question: can a pooled-mean estimator genuinely beat DL / REML /
+HKSJ / Henmi–Copas / GRMA v10 / TGEP out-of-sample, without circularity? A fair
+known-truth leaderboard (`leaderboard.py`, `src/methods.py`, scored against R
+`metafor`/`hc`/GRMA/TGEP on identical datasets) says **no method dominates** — the
+frontier is regime-specific: **HKSJ** for clean data, **Henmi–Copas** under
+publication selection. A new adaptive candidate (**AdaptShrink**, a soft Egger-gated
+REML↔PEESE blend) is competitive at the selection frontier (coverage closest to
+nominal most often) but does **not** beat Henmi–Copas (it over-widens). Reported
+honestly, with the truth-gate that caught a missing-baseline bug, in `LEADERBOARD.md`.
+
+_Status: Phase 1 methods-correction complete (honest negative); Phase 2 leaderboard
+complete (no method beats the established frontier; honest, well-characterised)._

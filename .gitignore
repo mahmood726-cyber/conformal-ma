@@ -6,6 +6,10 @@ __pycache__/
 .pytest_cache/
 sim_output/smoke*.json
 sim_output/_probe.json
+sim_output/_lb_*.json
+sim_output/lb_smoke*.json
+sim_output/lb_dev*.json
+sim_output/lb_datasets.json
 
 # Sentinel pre-push hook output (auto-generated per session)
 STUCK_FAILURES.md
@@ -14,3 +18,10 @@ sentinel-findings.md
 sentinel-findings.jsonl
 review-findings.md
 review-findings.jsonl
+
+# Codex run sidecars / superseded findings
+sim_output/*.txt
+sim_output/*.exit.txt
+sim_output/*.pid.txt
+leaderboard_FINDINGS.md
+sim_output/leaderboard_main.full_stdout.txt

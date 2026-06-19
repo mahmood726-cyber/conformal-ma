@@ -1,1 +1,0 @@
-[leaderboard] reps=400 methods=['DL', 'REML', 'HKSJ', 'PET-PEESE', 'Robust', 'AdaptShrink']

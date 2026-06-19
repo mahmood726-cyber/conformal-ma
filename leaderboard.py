@@ -49,7 +49,7 @@ ESTIMATORS = {
 
 
 def run(reps, ks, mus, tau2s, scenarios, re_dists, contams, alpha, methods,
-        export_path=None, verbose=True):
+        export_path=None, export_per_cell=50, verbose=True):
     # Two independent RNG streams: one for DATA (so the simulated datasets are
     # IDENTICAL for a given grid/reps regardless of which methods are run, enabling
     # clean merging across separate method-subset runs), one for the bootstrap
@@ -65,6 +65,7 @@ def run(reps, ks, mus, tau2s, scenarios, re_dists, contams, alpha, methods,
                         for mu in mus:
                             cell = f"{re_dist}|{scen}|c{contam}|t{tau2}|k{k}|m{mu}"
                             cell_seed += 1
+                            cell_exported = 0
                             data_rng = np.random.default_rng(BASE_SEED + cell_seed)
                             method_rng = np.random.default_rng(BASE_SEED + 100000 + cell_seed)
                             for m in methods:
@@ -76,10 +77,11 @@ def run(reps, ks, mus, tau2s, scenarios, re_dists, contams, alpha, methods,
                                     y, v = dgp.contaminate(y, v, data_rng, contam)
                                 if not (np.all(np.isfinite(y)) and np.all(v > 0)):
                                     continue
-                                if export_path is not None and len(export) < 4000:
+                                if export_path is not None and cell_exported < export_per_cell:
                                     export.append({"cell": cell, "mu": mu, "tau2": tau2,
                                                    "y": y.round(6).tolist(),
                                                    "v": v.round(8).tolist()})
+                                    cell_exported += 1
                                 for m in methods:
                                     try:
                                         res = ESTIMATORS[m](y, v, alpha, method_rng)
