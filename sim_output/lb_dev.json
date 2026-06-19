@@ -1,0 +1,129 @@
+{
+  "nominal": 0.95,
+  "band": [
+    0.9249999999999999,
+    0.975
+  ],
+  "cells": {
+    "normal|none|c0.0|t0.05|k8|m0.3": {
+      "DL": {
+        "bias": -0.0387,
+        "rmse": 0.1276,
+        "cover": 1.0,
+        "width": 0.4887,
+        "calibrated": false,
+        "n": 8
+      },
+      "REML": {
+        "bias": -0.0334,
+        "rmse": 0.1319,
+        "cover": 1.0,
+        "width": 0.5166,
+        "calibrated": false,
+        "n": 8
+      }
+    },
+    "normal|none|c0.15|t0.05|k8|m0.3": {
+      "DL": {
+        "bias": 0.0284,
+        "rmse": 0.147,
+        "cover": 1.0,
+        "width": 0.6321,
+        "calibrated": false,
+        "n": 8
+      },
+      "REML": {
+        "bias": 0.0286,
+        "rmse": 0.1423,
+        "cover": 1.0,
+        "width": 0.6515,
+        "calibrated": false,
+        "n": 8
+      }
+    },
+    "normal|copas_strong|c0.0|t0.05|k8|m0.3": {
+      "DL": {
+        "bias": 0.163,
+        "rmse": 0.2147,
+        "cover": 0.625,
+        "width": 0.4089,
+        "calibrated": false,
+        "n": 8
+      },
+      "REML": {
+        "bias": 0.1583,
+        "rmse": 0.2121,
+        "cover": 0.625,
+        "width": 0.3976,
+        "calibrated": false,
+        "n": 8
+      }
+    },
+    "normal|copas_strong|c0.15|t0.05|k8|m0.3": {
+      "DL": {
+        "bias": 0.1234,
+        "rmse": 0.2048,
+        "cover": 0.875,
+        "width": 0.7601,
+        "calibrated": false,
+        "n": 8
+      },
+      "REML": {
+        "bias": 0.1149,
+        "rmse": 0.2002,
+        "cover": 1.0,
+        "width": 0.6876,
+        "calibrated": false,
+        "n": 8
+      }
+    }
+  },
+  "aggregate": {
+    "DL": {
+      "mean_rmse": 0.1735,
+      "mean_cover": 0.875,
+      "mean_width": 0.5725,
+      "frac_calibrated": 0.0,
+      "calib_rmse": null,
+      "n_cells": 4
+    },
+    "REML": {
+      "mean_rmse": 0.1716,
+      "mean_cover": 0.9062,
+      "mean_width": 0.5633,
+      "frac_calibrated": 0.0,
+      "calib_rmse": null,
+      "n_cells": 4
+    }
+  },
+  "_meta": {
+    "reps": 8,
+    "ks": [
+      8
+    ],
+    "mus": [
+      0.3
+    ],
+    "tau2s": [
+      0.05
+    ],
+    "scenarios": [
+      "none",
+      "copas_strong"
+    ],
+    "re_dists": [
+      "normal"
+    ],
+    "contams": [
+      0.0,
+      0.15
+    ],
+    "alpha": 0.05,
+    "methods": [
+      "DL",
+      "REML"
+    ],
+    "seed": 20260619,
+    "seconds": 0.0
+  }
+}

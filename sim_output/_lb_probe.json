@@ -1,0 +1,158 @@
+{
+  "nominal": 0.95,
+  "band": [
+    0.9249999999999999,
+    0.975
+  ],
+  "cells": {
+    "normal|none|c0.0|t0.05|k10|m0.3": {
+      "DL": {
+        "bias": 0.0522,
+        "rmse": 0.1345,
+        "cover": 0.8,
+        "width": 0.4151,
+        "calibrated": false,
+        "n": 5
+      },
+      "REML": {
+        "bias": 0.0513,
+        "rmse": 0.1368,
+        "cover": 0.8,
+        "width": 0.4461,
+        "calibrated": false,
+        "n": 5
+      },
+      "HKSJ": {
+        "bias": 0.0513,
+        "rmse": 0.1368,
+        "cover": 0.8,
+        "width": 0.4842,
+        "calibrated": false,
+        "n": 5
+      },
+      "PET-PEESE": {
+        "bias": 0.1508,
+        "rmse": 0.2777,
+        "cover": 0.6,
+        "width": 0.7353,
+        "calibrated": false,
+        "n": 5
+      },
+      "Robust": {
+        "bias": 0.0476,
+        "rmse": 0.1308,
+        "cover": 0.8,
+        "width": 0.4594,
+        "calibrated": false,
+        "n": 5
+      },
+      "Egger-gated": {
+        "bias": 0.1512,
+        "rmse": 0.1956,
+        "cover": 0.8,
+        "width": 0.4717,
+        "calibrated": false,
+        "n": 5
+      },
+      "Ensemble": {
+        "bias": 0.0503,
+        "rmse": 0.134,
+        "cover": 0.6,
+        "width": 0.4213,
+        "calibrated": false,
+        "n": 5
+      }
+    }
+  },
+  "aggregate": {
+    "DL": {
+      "mean_rmse": 0.1345,
+      "mean_cover": 0.8,
+      "mean_width": 0.4151,
+      "frac_calibrated": 0.0,
+      "calib_rmse": null,
+      "n_cells": 1
+    },
+    "REML": {
+      "mean_rmse": 0.1368,
+      "mean_cover": 0.8,
+      "mean_width": 0.4461,
+      "frac_calibrated": 0.0,
+      "calib_rmse": null,
+      "n_cells": 1
+    },
+    "HKSJ": {
+      "mean_rmse": 0.1368,
+      "mean_cover": 0.8,
+      "mean_width": 0.4842,
+      "frac_calibrated": 0.0,
+      "calib_rmse": null,
+      "n_cells": 1
+    },
+    "PET-PEESE": {
+      "mean_rmse": 0.2777,
+      "mean_cover": 0.6,
+      "mean_width": 0.7353,
+      "frac_calibrated": 0.0,
+      "calib_rmse": null,
+      "n_cells": 1
+    },
+    "Robust": {
+      "mean_rmse": 0.1308,
+      "mean_cover": 0.8,
+      "mean_width": 0.4594,
+      "frac_calibrated": 0.0,
+      "calib_rmse": null,
+      "n_cells": 1
+    },
+    "Egger-gated": {
+      "mean_rmse": 0.1956,
+      "mean_cover": 0.8,
+      "mean_width": 0.4717,
+      "frac_calibrated": 0.0,
+      "calib_rmse": null,
+      "n_cells": 1
+    },
+    "Ensemble": {
+      "mean_rmse": 0.134,
+      "mean_cover": 0.6,
+      "mean_width": 0.4213,
+      "frac_calibrated": 0.0,
+      "calib_rmse": null,
+      "n_cells": 1
+    }
+  },
+  "_meta": {
+    "reps": 5,
+    "ks": [
+      10
+    ],
+    "mus": [
+      0.3
+    ],
+    "tau2s": [
+      0.05
+    ],
+    "scenarios": [
+      "none"
+    ],
+    "re_dists": [
+      "normal"
+    ],
+    "contams": [
+      0.0
+    ],
+    "alpha": 0.05,
+    "methods": [
+      "DL",
+      "REML",
+      "HKSJ",
+      "PET-PEESE",
+      "Robust",
+      "Egger-gated",
+      "Ensemble"
+    ],
+    "seed": 20260619,
+    "seconds": 1.3
+  }
+}

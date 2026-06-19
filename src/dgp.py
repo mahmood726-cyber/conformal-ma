@@ -141,6 +141,22 @@ def generate(mu, tau2, k, scenario, rng, re_dist="normal",
                          "re_dist": re_dist}
 
 
+def contaminate(y, v, rng, frac, shift=1.0):
+    """Turn a fraction of studies into gross outliers (data-entry errors /
+    aberrant studies): add +/- `shift` (absolute effect units) to their observed
+    y. The TRUE mu is unchanged -- outliers are contamination, not signal -- so a
+    robust estimator should recover mu while DL/REML get dragged. Returns a copy."""
+    y = np.array(y, float)
+    k = len(y)
+    n_out = int(round(frac * k))
+    if n_out <= 0:
+        return y, np.asarray(v, float)
+    idx = rng.choice(k, size=n_out, replace=False)
+    signs = rng.choice([-1.0, 1.0], size=n_out)
+    y[idx] = y[idx] + signs * shift
+    return y, np.asarray(v, float)
+
+
 def draw_new_study(rng, mu, tau2, re_dist="normal", se_new=None,
                    se_lo=0.10, se_hi=0.70):
     """Draw a genuinely held-out NEW study from the same true model.
