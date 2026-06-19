@@ -168,8 +168,15 @@ def conformal_pi(yi, vi, fit, se_new, alpha=0.05):
         denom = math.sqrt(f["tau2"] + f["se_mu"] ** 2 + vi[i])
         scores[i] = abs(yi[i] - f["mu"]) / denom
 
-    q_level = min(math.ceil((1 - alpha) * (k + 1)) / k, 1.0)
-    q = float(np.quantile(scores, q_level, method="higher"))
+    # Exact conformal order statistic: the m-th smallest score, m = ceil((1-a)(k+1)).
+    # (np.quantile with method="higher" can land one order statistic too high for
+    # larger k, making the interval needlessly conservative; we index directly.)
+    # When m > k -- which for alpha=0.05 happens whenever k < 19 -- a finite 95%
+    # split-conformal set is unattainable, so we clamp to the maximum score. This
+    # is a disclosed approximation, NOT an exact finite-sample guarantee.
+    m = math.ceil((1 - alpha) * (k + 1))
+    s = np.sort(scores)
+    q = float(s[m - 1]) if m <= k else float(s[-1])
     sp = predictive_sd(fit, se_new)
     half = q * sp
     return {"lo": fit["mu"] - half, "hi": fit["mu"] + half,

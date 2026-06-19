@@ -128,7 +128,10 @@ def loo_coverage(yi, sei, alpha=0.05):
     for i in range(k):
         y_lo = np.delete(yi, i)
         v_lo = np.delete(vi, i)
-        pis = C.all_pis(y_lo, v_lo, alpha=alpha)
+        # Predict the held-out study at ITS OWN precision (se_new = sei[i]), so the
+        # interval targets exactly the quantity we test (the observed y_i). Using
+        # the median training se instead would create an estimand mismatch.
+        pis = C.all_pis(y_lo, v_lo, alpha=alpha, se_new=float(np.sqrt(vi[i])))
         for m in METHODS:
             pi = pis[m]
             if pi is None:
@@ -140,7 +143,7 @@ def loo_coverage(yi, sei, alpha=0.05):
     full = C.all_pis(yi, vi, alpha=alpha)
     wr = (full["conformal"]["width"] / full["standard"]["width"]
           if full["standard"]["width"] > 0 else float("nan"))
-    return {"cov": cov, "tau2": full["fit"]["tau2"],
+    return {"cov": cov, "hits": hits, "folds": folds, "tau2": full["fit"]["tau2"],
             "I2": C.i_squared(full["fit"]["Q"], k), "width_ratio_conf_std": wr}
 
 
@@ -168,6 +171,7 @@ def main():
     t0 = time.time()
     rda_files = sorted(args.data.glob('*.rda'))
     results = []
+    micro = {m: [0, 0] for m in METHODS}  # [hits, folds] pooled over ALL held-out studies
     for rda in rda_files:
         review = load_review(rda)
         if review is None or review['k'] < args.min_k:
@@ -175,6 +179,9 @@ def main():
         r = loo_coverage(review['yi'], review['sei'], alpha=args.alpha)
         if r is None:
             continue
+        for m in METHODS:
+            micro[m][0] += r["hits"][m]
+            micro[m][1] += r["folds"][m]
         results.append({"review_id": review['review_id'], "k": review['k'],
                         "scale": review['scale'], "tau2": round(r["tau2"], 4),
                         "I2": round(r["I2"], 1),
@@ -194,10 +201,25 @@ def main():
     meds = {m: float(np.nanmedian(col(f"cov_{m}"))) for m in METHODS}
     wr = col("width_ratio_conf_std")
 
-    print(f"  reviews: {n}   time: {elapsed:.1f}s")
-    print(f"\n  {'Method':12s}{'mean LOO cov':>14s}{'median':>10s}")
+    def wilson(h, nn, z=1.96):
+        if nn == 0:
+            return (float("nan"), float("nan"))
+        p = h / nn
+        d = 1 + z * z / nn
+        c = p + z * z / (2 * nn)
+        hw = z * ((p * (1 - p) / nn + z * z / (4 * nn * nn)) ** 0.5)
+        return ((c - hw) / d, (c + hw) / d)
+
+    micro_cov = {m: (micro[m][0] / micro[m][1] if micro[m][1] else float("nan")) for m in METHODS}
+    micro_ci = {m: wilson(micro[m][0], micro[m][1]) for m in METHODS}
+
+    print(f"  reviews: {n}   held-out studies: {micro['standard'][1]}   time: {elapsed:.1f}s")
+    print(f"\n  {'Method':12s}{'macro mean':>12s}{'macro med':>11s}"
+          f"{'micro':>9s}{'micro 95% CI':>20s}")
     for m in METHODS:
-        print(f"  {m:12s}{means[m]:>14.4f}{meds[m]:>10.4f}")
+        lo, hi = micro_ci[m]
+        print(f"  {m:12s}{means[m]:>12.4f}{meds[m]:>11.4f}{micro_cov[m]:>9.4f}"
+              f"   [{lo:.4f}, {hi:.4f}]")
     print(f"\n  median conformal/standard width ratio: {np.nanmedian(wr):.3f}")
     print(f"  conformal wider than standard: "
           f"{int(np.sum(wr > 1))}/{n} ({100*np.mean(wr > 1):.1f}%)")
@@ -222,14 +244,19 @@ def main():
         w = csv.DictWriter(f, fieldnames=fields)
         w.writeheader()
         w.writerows(results)
-    summary = {"n_reviews": n, "alpha": args.alpha,
-               "loo_coverage_mean": {m: round(means[m], 4) for m in METHODS},
-               "loo_coverage_median": {m: round(meds[m], 4) for m in METHODS},
+    summary = {"n_reviews": n,
+               "n_heldout_studies": micro["standard"][1], "alpha": args.alpha,
+               "loo_coverage_macro_mean": {m: round(means[m], 4) for m in METHODS},
+               "loo_coverage_macro_median": {m: round(meds[m], 4) for m in METHODS},
+               "loo_coverage_micro": {m: round(micro_cov[m], 4) for m in METHODS},
+               "loo_coverage_micro_95CI": {m: [round(micro_ci[m][0], 4), round(micro_ci[m][1], 4)]
+                                           for m in METHODS},
                "median_width_ratio_conf_std": round(float(np.nanmedian(wr)), 3),
                "by_heterogeneity": strat_out,
                "elapsed_seconds": round(elapsed, 1),
-               "note": "Honest out-of-sample LOO: each held-out study predicted "
-                       "from the other k-1; no method sees its test point."}
+               "note": "Honest out-of-sample LOO: each held-out study predicted from the "
+                       "other k-1 at its own SE; no method sees its test point. macro = mean "
+                       "of per-review coverages; micro = pooled over all held-out studies."}
     with open(args.out / 'conformal_loo_summary.json', 'w', encoding='utf-8') as f:
         json.dump(summary, f, indent=2)
     print(f"\n  saved -> {args.out}/")

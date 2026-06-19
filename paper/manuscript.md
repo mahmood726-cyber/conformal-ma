@@ -16,7 +16,7 @@ Correspondence: Mahmood Ahmad, Royal Free Hospital, Pond Street, London NW3 2QG,
 
 **Methods:** We re-examined the original evaluation, which built a single interval from all *k* studies in a review and then counted how many of those same *k* studies fell inside it. Because the conformal interval is calibrated on exactly those leave-one-out residuals, this in-sample procedure grades conformal on the quantity it was fit to. We replaced it with two honest, non-circular evaluations: (i) a genuine leave-one-out (LOO) prediction-coverage analysis on the same 365 Cochrane reviews, in which each held-out study is predicted from the other *k*−1 studies; and (ii) a known-truth simulation in which *k* published studies are drawn from a specified random-effects model (normal, heavy-tailed, skewed, or bimodal) with optional publication selection, all three PIs are built, and coverage is checked against a genuinely held-out new study from the same truth. All three methods were given an identical predictive scale, so they differed only in the multiplier (parametric *t* versus conformal empirical quantile). The DerSimonian–Laird pooling and PI construction were validated against R `metafor` to machine precision.
 
-**Results:** Under honest LOO on the 365 reviews (nominal 95%), mean coverage was 91.7% for the standard PI, 91.0% for HKSJ, and 85.7% for conformal — the *reverse* of the published ranking. Conformal intervals were not wider but slightly narrower (median width ratio 0.92). The claimed advantage at high heterogeneity did not appear: at I² > 75% both standard and conformal covered ~89%, and the standard PI never collapsed to the previously reported 58%. The known-truth simulation corroborated this: with correctly specified models the standard PI was at or slightly above nominal, while conformal under-covered, most severely at small *k* (finite-sample conformal calibration), approaching nominal only by *k* ≥ 10–15.
+**Results:** Under honest LOO on the 365 reviews (6,595 held-out studies, nominal 95%), coverage was 96.8% (standard), 96.5% (HKSJ) and 90.3% (conformal) macro-averaged across reviews, and 95.7% / 95.6% / 94.1% micro-averaged across held-out studies (conformal micro 95% CI [93.5%, 94.6%], standard [95.1%, 96.1%] — non-overlapping) — the *reverse* of the published ranking. Conformal intervals were not wider but slightly narrower (median width ratio 0.91). The claimed advantage at high heterogeneity did not appear: the standard PI never collapsed to the previously reported 58%, and conformal's deficit was largest at *low* heterogeneity and few studies. The known-truth simulation corroborated this at both τ²=0.05 and τ²=0.30: the standard PI was at or above nominal while conformal under-covered, most severely at *k* = 5 (where a 95% conformal set is unattainable with so few calibration points), approaching nominal only by *k* ≥ 15; conformal never overtook the standard interval in any regime.
 
 **Conclusions:** The headline finding of the original analysis was a measurement artifact. Evaluated out-of-sample, the standard random-effects prediction interval is well-calibrated to slightly conservative, and split/full conformal prediction confers no coverage advantage in realistic meta-analytic regimes and under-covers when the number of studies is small. We report this as a negative result and a cautionary tale about in-sample coverage evaluation.
 
@@ -58,15 +58,29 @@ A meta-analysis of *k* published studies was drawn from a known (μ, τ²) using
 
 ## Results
 
-### Real-data leave-one-out (n = 365, nominal 95%)
+### Real-data leave-one-out (365 reviews, 6,595 held-out studies, nominal 95%)
 
-| Method | Mean LOO coverage | Median |
-|---|---|---|
-| Standard | 0.917 | 0.938 |
-| HKSJ | 0.910 | 0.923 |
-| Conformal | **0.857** | 0.875 |
+Each held-out study *i* was predicted from the other *k*−1 studies at its own
+standard error sᵢ. We report both the macro-average (mean of per-review
+coverages) and the micro-average (pooled over all held-out studies) with Wilson
+95% confidence intervals.
 
-The median conformal-to-standard width ratio was 0.92 — conformal intervals were *narrower*, not three times wider as previously reported. Stratified by heterogeneity, the standard PI covered 0.949 / 0.895 / 0.888 at I² < 25% / 25–75% / > 75%, while conformal covered 0.841 / 0.864 / 0.888. The previously claimed pattern (conformal 0.93 vs standard 0.58 at high heterogeneity) did not occur; the standard PI was never far below nominal out-of-sample, and conformal's deficit was largest at *low* heterogeneity, where small numbers of homogeneous studies make its empirical quantile unstable.
+| Method | Macro mean | Macro median | Micro | Micro 95% CI |
+|---|---|---|---|---|
+| Standard | 0.968 | 1.000 | 0.957 | [0.951, 0.961] |
+| HKSJ | 0.965 | 1.000 | 0.956 | [0.951, 0.960] |
+| Conformal | **0.903** | 0.923 | **0.941** | [0.935, 0.946] |
+
+The conformal micro CI lies entirely below the standard micro CI. The
+macro–micro gap for conformal (0.903 vs 0.941) reflects its concentrated failure
+on small-*k* reviews, which carry equal weight in the macro-average. The median
+conformal-to-standard width ratio was 0.91 — conformal intervals were *narrower*,
+not three times wider. Stratified by heterogeneity (macro), the standard PI
+covered 0.990 / 0.958 / 0.933 at I² < 25% / 25–75% / > 75%, while conformal
+covered 0.881 / 0.914 / 0.940. The previously claimed pattern (conformal 0.93 vs
+standard 0.58 at high heterogeneity) did not occur; the standard PI was never far
+below nominal out-of-sample, and conformal's deficit was largest at *low*
+heterogeneity, where few homogeneous studies make its empirical quantile unstable.
 
 ### Known-truth simulation
 
@@ -88,7 +102,7 @@ covered ~0.88–0.90 at roughly 0.62× the width; the two converged by *k* ≈ 1
 and at *k* = 25 conformal became slightly conservative and wider. Across all four
 random-effects laws the standard PI was at or slightly above nominal and the
 conformal PI under-covered, most severely at *k* = 5 and converging toward
-nominal only by *k* ≥ 15. The HKSJ interval tracked the standard interval closely. Because the predictive distribution of an observed new study is the random-effects law convolved with normal sampling error, moderate non-normality of the random effects is partially Gaussianised at realistic τ²-to-precision ratios, which limits any distribution-free advantage; a τ²-dominant sensitivity analysis is reported in the repository.
+nominal only by *k* ≥ 15. The HKSJ interval tracked the standard interval closely. Because the predictive distribution of an observed new study is the random-effects law convolved with normal sampling error, moderate non-normality of the random effects is partially Gaussianised at realistic τ²-to-precision ratios, which limits any distribution-free advantage. In a τ²-dominant sensitivity analysis (τ² = 0.30), where the random-effects shape is less masked by sampling noise, the gap narrowed (e.g. for a normal law, standard 0.926 vs conformal 0.920) but conformal still did not overtake the standard interval in any of the four random-effects laws, and the small-*k* under-coverage persisted.
 
 ## Discussion
 
@@ -102,7 +116,26 @@ The episode is a clean cautionary example of a broader failure mode: evaluating 
 
 ### Limitations
 
-Leave-one-out coverage on real data treats each observed study effect as the prediction target; with no ground truth, it is the best available empirical check, and the simulation supplies the known-truth complement. The simulation does not model every real-world departure (e.g., outlier or fraudulent studies), under which a robust interval could behave differently; conformal prediction may retain advantages in heavy-contamination regimes not examined here. Our conclusions concern the standard split/full conformal PI as implemented, not every possible conformal variant.
+Our conclusions are deliberately narrow: they concern *this* finite-sample,
+normalized leave-one-out conformal prediction interval as implemented, and should
+not be read as evidence that conformal prediction undercovers in general. The
+implementation calibrates nonconformity scores on the *k*−1 leave-one-out fits
+but applies the resulting quantile on the full-data predictive scale, so it is a
+jackknife-style conformal PI, not exact full conformal, and we claim no exact
+finite-sample guarantee for it.
+
+Leave-one-out coverage on real data treats each observed study effect (at its own
+standard error) as the prediction target; with no ground truth this is the best
+available empirical check, and the simulation supplies the known-truth complement.
+The primary-outcome extraction from each review is heuristic, and standard errors
+are derived from reported confidence intervals; we did not test the sensitivity of
+the real-data result to these choices. In the simulation the held-out future study
+is drawn from the *unconditional* population (not the publication-selected subset);
+if the target is instead "the next *published* study", coverage of all methods
+would differ, and we did not model that. Finally, the simulation does not include
+outlier or fraudulent studies, under which a robust interval could behave
+differently; conformal prediction may retain advantages in heavy-contamination
+regimes not examined here.
 
 ## Conclusions
 

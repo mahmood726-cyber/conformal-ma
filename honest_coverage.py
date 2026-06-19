@@ -117,12 +117,17 @@ def _agg(rows, key_fields, target):
 def analyse(rows, alpha):
     nominal = 1 - alpha
     out = {"nominal": nominal, "n_total": len(rows)}
-    # primary estimand: theta_new (the classic meta-analysis PI target)
-    out["theta_new_by_re_dist"] = _agg(rows, ["re_dist"], "theta_new")
-    out["theta_new_by_re_dist_scenario"] = _agg(rows, ["re_dist", "scen"], "theta_new")
-    out["theta_new_by_re_dist_k"] = _agg(rows, ["re_dist", "k"], "theta_new")
-    # secondary: y_new (observable next study)
+    # PRIMARY estimand throughout: y_new (the observable next-study effect at
+    # median precision), which matches the shared predictive scale. theta_new
+    # (the latent true effect) is reported as a SECONDARY diagnostic and is
+    # conservative by construction because the same y-scale interval (which
+    # includes se_new^2) is wider than a theta_new-only interval would be.
     out["y_new_by_re_dist"] = _agg(rows, ["re_dist"], "y_new")
+    out["y_new_by_re_dist_scenario"] = _agg(rows, ["re_dist", "scen"], "y_new")
+    out["y_new_by_re_dist_k"] = _agg(rows, ["re_dist", "k"], "y_new")
+    # secondary (conservative) diagnostic: theta_new
+    out["theta_new_by_re_dist"] = _agg(rows, ["re_dist"], "theta_new")
+    out["theta_new_by_re_dist_k"] = _agg(rows, ["re_dist", "k"], "theta_new")
     # the honest summary: how far is each method's mean coverage from nominal,
     # under a correctly specified model (normal, no selection) vs the rest
     correct = [r for r in rows if r["re_dist"] == "normal" and r["scen"] == "none"]

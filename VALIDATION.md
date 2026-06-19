@@ -39,22 +39,31 @@ standard 0.706 / hksj 0.669, i.e. the in-sample artifact reproduces.
 
 ### 3a. Honest leave-one-out on the SAME real data (`pipeline.py`)
 
-Each held-out study is predicted from the OTHER k-1; no method sees its test
-point. n=365, nominal 95%:
+Each held-out study is predicted from the OTHER k-1 AT ITS OWN standard error;
+no method sees its test point. 365 reviews, 6,595 held-out studies, nominal 95%:
 
-| method | mean LOO coverage | median |
-|---|---|---|
-| standard  | 0.917 | 0.938 |
-| hksj      | 0.910 | 0.923 |
-| conformal | **0.857** | 0.875 |
+| method | macro mean | macro median | micro | micro 95% CI |
+|---|---|---|---|---|
+| standard  | 0.968 | 1.000 | 0.957 | [0.951, 0.961] |
+| hksj      | 0.965 | 1.000 | 0.956 | [0.951, 0.960] |
+| conformal | **0.903** | 0.923 | **0.941** | [0.935, 0.946] |
 
-Median conformal/standard width ratio = 0.917 (conformal NARROWER, not 3x wider).
-By heterogeneity: low I^2 std 0.949 / conf 0.841; high I^2 std 0.888 / conf 0.888.
+macro = mean of per-review coverages; micro = pooled over all held-out studies
+(Wilson CI). The conformal micro CI lies entirely below the standard micro CI.
+Median conformal/standard width ratio = 0.91 (conformal NARROWER, not 3x wider).
+By heterogeneity (macro): low I^2 std 0.990 / conf 0.881; high I^2 std 0.933 /
+conf 0.940.
 
 **The honest ranking is the OPPOSITE of the published claim**: out-of-sample,
-the standard PI covers best and conformal under-covers. The manuscript's
-"conformal 93% vs standard 58% at high heterogeneity" does not hold -- standard
-never collapses to 58% out-of-sample.
+the standard PI covers best and conformal under-covers (worst at low I^2 / small
+k). The manuscript's "conformal 93% vs standard 58% at high heterogeneity" does
+not hold -- standard never collapses to 58% out-of-sample.
+
+An independent adversarial review of the refutation (a second CLI model, saved
+at `tools/codex_adversarial_review.md`) confirmed the circularity refutation is
+real and found no leakage bug; its fixes (predict each held-out study at its own
+SE; exact conformal order statistic; macro+micro reporting with CIs; narrowed
+claim) are incorporated above.
 
 ### 3b. Known-truth simulation (`honest_coverage.py`)
 

@@ -8,18 +8,27 @@ reviews. That result turned out to be an artifact of **in-sample (circular)
 coverage evaluation** — the interval was graded on the same studies used to build
 it, which conformal wins by construction.
 
-Re-evaluated honestly out-of-sample, the ranking **reverses**:
+Re-evaluated honestly out-of-sample (each held-out study predicted from the
+other *k*−1 at its own precision), the ranking **reverses**:
 
 | Evaluation | standard | HKSJ | conformal |
 |---|---|---|---|
 | In-sample LOO (original, circular) | 0.706 | 0.669 | 0.919 |
-| **Honest LOO on real data (n=365)** | **0.917** | 0.910 | **0.857** |
+| **Honest LOO, real data — macro** (365 reviews) | **0.968** | 0.965 | **0.903** |
+| **Honest LOO, real data — micro** (6,595 studies) | 0.957 | 0.956 | 0.941 |
 
-Conformal intervals are slightly *narrower* (median width ratio 0.92), not 3× wider,
-and confer no coverage advantage; they under-cover, worst at small *k*. A known-truth
-simulation across normal / heavy-tailed / skewed / bimodal random-effects laws
-corroborates this. The DerSimonian–Laird core is validated against R `metafor` to
-machine precision (≤ 3×10⁻¹⁶).
+(micro 95% CIs: standard [0.951, 0.961] vs conformal [0.935, 0.946] — non-overlapping.)
+
+Conformal intervals are slightly *narrower* (median width ratio 0.91), not 3× wider,
+and confer no coverage advantage; they under-cover, worst at small *k* and low
+heterogeneity. A known-truth simulation across normal / heavy-tailed / skewed /
+bimodal random-effects laws corroborates this at τ²=0.05 and τ²=0.30 (conformal
+never overtakes standard). The DerSimonian–Laird core is validated against R
+`metafor` 5.0.1 to machine precision (≤ 3×10⁻¹⁶).
+
+The honest claim is appropriately narrow: *this finite-sample normalized
+leave-one-out conformal PI does not beat the standard t-interval* in these
+analyses — not that conformal prediction undercovers universally.
 
 This is reported as a **negative result** and a cautionary example of in-sample
 coverage bias. See `paper/manuscript.md` and `VALIDATION.md`.

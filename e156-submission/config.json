@@ -6,8 +6,8 @@
   "path": "",
   "type": "methods",
   "primary_estimand": "Out-of-sample prediction interval coverage probability",
-  "summary": "Honest out-of-sample evaluation reverses the claim: standard prediction intervals cover 91.7% vs 85.7% for conformal across 365 Cochrane reviews; the earlier conformal advantage was an in-sample artifact.",
-  "body": "Do conformal prediction intervals outperform standard prediction intervals in meta-analysis, or was their reported advantage an artifact of measurement? We re-examined 365 Cochrane reviews from the Pairwise70 corpus, each with at least five primary-outcome studies, plus a known-truth simulation over several non-normal random-effects laws. The original evaluation built one interval from all studies and counted how many fell inside it, grading conformal on residuals it calibrated on; we instead used honest leave-one-out and known-truth out-of-sample coverage. Out-of-sample, mean coverage was 91.7% for the standard interval, 91.0% for HKSJ, and only 85.7% for conformal, reversing the reported ranking. The simulation agreed: the standard interval stayed near nominal across all random-effects laws while conformal under-covered, worst at five studies, with comparable not threefold widths. The apparent superiority of conformal prediction was a circular in-sample artifact, and the standard interval's t-multiplier supplies small-sample protection. Conformal prediction may still help under heavy contamination or many studies, regimes not examined here.",
+  "summary": "Honest out-of-sample evaluation reverses the claim: standard prediction intervals cover 96.8% vs 90.3% for conformal (macro) across 365 Cochrane reviews; the earlier conformal advantage was an in-sample artifact.",
+  "body": "Do conformal prediction intervals outperform standard prediction intervals in meta-analysis, or was their reported advantage an artifact of measurement? We re-examined 365 Cochrane reviews from the Pairwise70 corpus, each with at least five primary-outcome studies, plus a known-truth simulation over several non-normal random-effects laws. The original evaluation built one interval from all studies and counted how many fell inside it, grading conformal on residuals it calibrated on; we instead used honest leave-one-out and known-truth out-of-sample coverage. Out-of-sample, mean coverage was 96.8% for the standard interval, 96.5% for HKSJ, and 90.3% for conformal, still reversing the reported ranking. The simulation agreed: the standard interval stayed near nominal across all random-effects laws while conformal under-covered, worst at five studies, with comparable not threefold widths. The apparent superiority of conformal prediction was a circular in-sample artifact, and the standard interval's t-multiplier supplies small-sample protection. Conformal prediction may still help under heavy contamination or many studies, regimes not examined here.",
   "sentences": [
     {
       "role": "Question",
@@ -23,7 +23,7 @@
     },
     {
       "role": "Primary result",
-      "text": "Out-of-sample, mean coverage was 91.7% for the standard interval, 91.0% for HKSJ, and only 85.7% for conformal, reversing the reported ranking."
+      "text": "Out-of-sample, mean coverage was 96.8% for the standard interval, 96.5% for HKSJ, and 90.3% for conformal, still reversing the reported ranking."
     },
     {
       "role": "Robustness",
